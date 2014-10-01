@@ -1,4 +1,6 @@
 
+import java.io.*;
+
 import GivenTools.*;
 
 /**
@@ -30,14 +32,51 @@ public class RUBTClient {
         // java -cp . RUBTClient somefile.torrent picture.jpeg
     	if(args[0] == null | args[1] == null){
     		System.out.println("Incorrect # of args!");
+    		System.exit(1);
     	}
     	
         String torr = args[0];
         String file = args[1];
+        
+        byte[] torrentBytes = null;
+        
+        try{
        
+        //open the .torrent file
+        final File torrentFile = new File(torr);
+        final DataInputStream torrentDataIn = 
+        		new DataInputStream(new FileInputStream(torrentFile));
+        		
+        torrentBytes = new byte[(int)torrentFile.length()];
+        torrentDataIn.readFully(torrentBytes);
+        torrentDataIn.close();
+        
+        
+        }catch (FileNotFoundException f){
+        	System.out.println("File not found!");
+        	System.exit(1);
+        }catch (IOException e){
+        	System.out.println("IO Exception!");
+        	System.exit(1);
+        }//end try
+        
+        //if nothing loaded into torrentBytes
+        if(torrentBytes==null){
+        	System.out.println("Torrent file corrupt! Unable to read.");
+        	System.exit(1);
+        }
+        
+        TorrentInfo torrentInfo = null;
+        try{
+        	torrentInfo = new TorrentInfo(torrentBytes);
+        	
+        }catch (final BencodingException b){
+        	System.out.println("Bencoding error! Unable to create TorrentInfo object.");
+        }
         
         
         
-    }
+        
+    }//end main
     
-}
+}//end public class
