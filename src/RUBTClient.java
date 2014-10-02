@@ -83,44 +83,11 @@ public class RUBTClient {
 
         System.out.println("yous a bitch ass nigga");
         System.out.println(torrentInfo.announce_url);
-        Tracker Track= new Tracker(torrentInfo);
-        Track.peer_id = generatePeerId();
-
-        URL url;
-        HttpURLConnection conn;
-        BufferedReader br;
-        int connected;
-        try{
-        	url = Track.url;
-        	conn = (HttpURLConnection)url.openConnection();
-        	//conn.setRequestMethod("GET");
-        	
-        	//get response code to see if connection success
-        	connected = conn.getResponseCode();
-        	System.out.println("Response code: "+connected);
         
-        	// read each byte from input stream, write to output stream        	
-        	final InputStream is = conn.getInputStream();
-            final ByteArrayOutputStream buff = new ByteArrayOutputStream();
-            final byte[] data = new byte[16384];
-            int i;
-            while((i = is.read(data, 0, data.length))!= -1){
-            	buff.write(data, 0, i);
-            }
-        	//decode response (bencoded)
-        	
-        	
-        }catch(IOException e){
-        	System.out.println("IOException error!");
-        	e.printStackTrace();
-        }catch(Exception e){
-        	System.out.println("Exception error!");
-        	e.printStackTrace();
-        }
-
-     
-        
-        
+       final String peer_id = generatePeerId();
+       final URL url = torrentInfo.announce_url;
+       
+       
         
         
         
