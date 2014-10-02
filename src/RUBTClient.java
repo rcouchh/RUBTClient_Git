@@ -29,8 +29,13 @@ public class RUBTClient {
     /**
      * @param args the command line arguments
      */
+	
+	
+	
     public static void main(String[] args) {
         // java -cp . RUBTClient somefile.torrent picture.jpeg
+    	//args[0]="http://128.6.5.130:6969/announce";
+    	//args[1]="6969";
         if(args[0] == null | args[1] == null){
             System.out.println("Incorrect # of args!");
             System.exit(1);
@@ -79,8 +84,31 @@ public class RUBTClient {
         System.out.println("yous a bitch ass nigga");
         System.out.println(torrentInfo.announce_url);
         Tracker Track= new Tracker(torrentInfo);
+        Track.peer_id = generatePeerId();
 
-
+        
+     
+        
+        
+        
     }//end main
 
+    
+    
+    
+    
+    //method to generate a random peer_id
+    public static String generatePeerId(){
+    	//first 4 digits remain the same to identify
+    	String str = "8008";
+    	
+    	//add 16 other random numbers to string
+    	for(int i=4; i<20; i++){
+    		str = str+((int)Math.floor(Math.random()*10)+1);
+    	}
+		return str;
+    }
+    
+    
+    
 }//end public class
