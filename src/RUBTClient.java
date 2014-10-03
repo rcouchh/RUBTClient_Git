@@ -30,8 +30,6 @@ public class RUBTClient {
      * @param args the command line arguments
      */
 
-
-
     public static void main(String[] args) {
         // java -cp . RUBTClient somefile.torrent picture.jpeg
         //args[0]="http://128.6.5.130:6969/announce";
@@ -73,25 +71,58 @@ public class RUBTClient {
             System.exit(1);
         }
 
-        TorrentInfo torrentInfo = null;
+        TorrentInfo tInfo = null;
         try{
-            torrentInfo = new TorrentInfo(torrentBytes);
+            tInfo = new TorrentInfo(torrentBytes);
 
         }catch (final BencodingException b){
             System.out.println("Bencoding error! Unable to create TorrentInfo object.");
         }
-
+        RUBTClient Client = new RUBTClient(tInfo,args[1]);
         System.out.println("yous a bitch ass nigga");
-        System.out.println(torrentInfo.announce_url);
+        System.out.println(tInfo.announce_url);
 
-       final String peer_id = generatePeerId();
-       final URL url = torrentInfo.announce_url;
-       String ip= "http://128.6.171.131:6969/announce";
-       byte[] b= torrentInfo.info_hash.array();
-       String port = "6882";
-       System.out.print("trying to contact tracker");
+    }//end main
+
+   private final String url;    //announce url to be added to for get request
+
+   private final String peer_id; //unique peer_id
+
+   private final TorrentInfo tInfo;// torrentinfo object
+
+   private final String writeFile; //file to write to
+
+   private final int port=6881;//port for client to listen on try 6881 first
+
+   private final int fileLength;//length of file to download
+
+   private final int pieceLength;//length of piece to be downloaded
+
+   private final int downloaded;// number of bytes downloaed by client
+
+   private final int left;//number of bytes left to be downloaded
+
+   private final int uploaded;// number of bytes uploaded by client to peer;
+
+
+
+   private final byte[] info_hash;
+
+   public RUBTClient(TorrentInfo info, String WriteFile){
+
+       this.tInfo= info;
+       this.writeFile= WriteFile;
+       this.url= tInfo.announce_url.toString();
+       this.downloaded= 0;
+       this.left=tInfo.file_length;
+       this.uploaded=0;
+       this.peer_id= generatePeerId();
+       this.info_hash=tInfo.info_hash.array();
+        this.pieceLength=tInfo.piece_length;
+    this.fileLength=tInfo.file_length;
+
        try {
-        Tracker track = new Tracker(ip,peer_id,b,port);
+        Tracker tracker= new Tracker(this.url,this.peer_id,this.port,this.info_hash,this.downloaded,this.left,this.uploaded);
     } catch (UnsupportedEncodingException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -99,9 +130,7 @@ public class RUBTClient {
 
 
 
-
-    }//end main
-
+   }
 
 
 

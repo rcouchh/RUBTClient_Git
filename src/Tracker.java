@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 
+import GivenTools.Bencoder2;
 import GivenTools.ToolKit;
 import GivenTools.TorrentInfo;
 /*
@@ -20,18 +21,29 @@ http://some.tracker.com:999/announce
 &event=stopped
 */
 
-public class Tracker extends RUBTClient{
-
+public class Tracker {
+    private String AnnounceUrl;
+    private String peer_id;
+    private int port;
+    private String info_Hash_url;
+     int downloaded;
+     int left;
+     int uploaded;
+     URL url;
     @SuppressWarnings("deprecation")
-    public Tracker(String AnnounceUrl, String peer_id, byte[] infoHash,String port ) throws UnsupportedEncodingException{
-          String u= AnnounceUrl;
-          String pe= peer_id;
+    public Tracker(String AnnounceUrl, String peer_id,int port, byte[] infoHash, int downloaded, int left, int uploaded ) throws UnsupportedEncodingException{
+          this.AnnounceUrl= AnnounceUrl;
+          this.peer_id= peer_id;
           String iHash= encode(infoHash);
-          iHash=URLEncoder.encode(iHash,"UTF-8");
-          String p= port;
-          URL url=null;
+          this.info_Hash_url=URLEncoder.encode(iHash,"UTF-8");
+          this.port= port;
+         this.uploaded= uploaded;
+          this.downloaded= downloaded;
+          this.left=left;
+
+
         try {
-            url = new URL(u+"?"+iHash+"&"+peer_id);
+            this.url = new URL(AnnounceUrl+"?"+"info_hash="+info_Hash_url+"&"+"peer_id="+peer_id+"port="+port+"&"+"uploaded="+uploaded+"&"+"downloaded="+downloaded+"&"+"left="+left);
         } catch (MalformedURLException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
@@ -55,7 +67,8 @@ public class Tracker extends RUBTClient{
                 while((i = is.read(data, 0, data.length))!= -1){
                     buff.write(data, 0, i);
                 }
-                ToolKit.printString(data, true, data.length);
+                Bencoder2.decode(data);
+                System.out.println(url.toString());
 
 
             }catch(IOException e){
