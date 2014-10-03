@@ -29,6 +29,12 @@ public class RUBTClient {
     /**
      * @param args the command line arguments
      */
+	   public final TorrentInfo tInfo;// torrentinfo object
+
+	   public final String writeFile; //file to write to
+	
+	   public String event; //event passed from tracker
+	   static final byte[] BYTES_GROUP = { 'G', 'P', '1', '6' };
 
     public static void main(String[] args) {
         // java -cp . RUBTClient somefile.torrent picture.jpeg
@@ -38,11 +44,16 @@ public class RUBTClient {
             System.out.println("Incorrect # of args!");
             System.exit(1);
         }
+        
+        //global vars
+        RUBTClient client;
+        Tracker tracker;
 
         String torr = args[0];
         String file = args[1];
 
         byte[] torrentBytes = null;
+        
 
         try{
 
@@ -78,55 +89,35 @@ public class RUBTClient {
         }catch (final BencodingException b){
             System.out.println("Bencoding error! Unable to create TorrentInfo object.");
         }
-        RUBTClient Client = new RUBTClient(tInfo,args[1]);
-        System.out.println("yous a bitch ass nigga");
-        System.out.println(tInfo.announce_url);
-
+        
+        //initialize client
+        client = new RUBTClient(tInfo,args[1]);
+     
+        //initialize tracker, make connection
+        System.out.println("Initializing tracker, connecting...");
+        try {
+			Tracker track = new Tracker(client);
+			
+		} catch (Exception e) {
+			System.out.println("Error creating/connecting to the tracker!");
+			System.exit(1);
+		}
+        
+        
     }//end main
 
-   private final String url;    //announce url to be added to for get request
-
-   private final String peer_id; //unique peer_id
-
-   private final TorrentInfo tInfo;// torrentinfo object
-
-   private final String writeFile; //file to write to
-
-   private final int port=6881;//port for client to listen on try 6881 first
-
-   private final int fileLength;//length of file to download
-
-   private final int pieceLength;//length of piece to be downloaded
-
-   private final int downloaded;// number of bytes downloaed by client
-
-   private final int left;//number of bytes left to be downloaded
-
-   private final int uploaded;// number of bytes uploaded by client to peer;
 
 
 
-   private final byte[] info_hash;
+
 
    public RUBTClient(TorrentInfo info, String WriteFile){
 
        this.tInfo= info;
        this.writeFile= WriteFile;
-       this.url= tInfo.announce_url.toString();
-       this.downloaded= 0;
-       this.left=tInfo.file_length;
-       this.uploaded=0;
-       this.peer_id= generatePeerId();
-       this.info_hash=tInfo.info_hash.array();
-        this.pieceLength=tInfo.piece_length;
-    this.fileLength=tInfo.file_length;
+   
 
-       try {
-        Tracker tracker= new Tracker(this.url,this.peer_id,this.port,this.info_hash,this.downloaded,this.left,this.uploaded);
-    } catch (UnsupportedEncodingException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-    }
+  
 
 
 
@@ -135,18 +126,7 @@ public class RUBTClient {
 
 
 
-    //method to generate a random peer_id
-    public static String generatePeerId(){
-        //first 4 digits remain the same to identify
-        String str = "8008";
-
-        //add 16 other random numbers to string
-        for(int i=4; i<20; i++){
-            str = str+((int)Math.floor(Math.random()*10)+1);
-        }
-        return str;
-    }
-
+  
 
 
 }//end public class

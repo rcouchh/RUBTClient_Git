@@ -1,4 +1,5 @@
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -6,8 +7,16 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Random;
 
 import GivenTools.Bencoder2;
+import GivenTools.BencodingException;
 import GivenTools.ToolKit;
 import GivenTools.TorrentInfo;
 /*
@@ -21,64 +30,244 @@ http://some.tracker.com:999/announce
 &event=stopped
 */
 
+
 public class Tracker {
     private String AnnounceUrl;
     private String peer_id;
     private int port;
     private String info_Hash_url;
-     int downloaded;
-     int left;
-     int uploaded;
-     URL url;
-    @SuppressWarnings("deprecation")
-    public Tracker(String AnnounceUrl, String peer_id,int port, byte[] infoHash, int downloaded, int left, int uploaded ) throws UnsupportedEncodingException{
-          this.AnnounceUrl= AnnounceUrl;
-          this.peer_id= peer_id;
-          String iHash= encode(infoHash);
-          this.info_Hash_url=URLEncoder.encode(iHash,"UTF-8");
-          this.port= port;
-         this.uploaded= uploaded;
-          this.downloaded= downloaded;
-          this.left=left;
+    private int downloaded;
+    private int left;
+    private int uploaded;
+    private URL url;
+    
+   
+    private static ArrayList<String> peerIPList = new ArrayList<String>();
+     HttpURLConnection conn;
+     byte[] trackerBytes = null;
+      DataInputStream is;
+      ByteArrayOutputStream buff;
+      int connected=0;
+ public static ByteBuffer keyFAILURE = ByteBuffer.wrap(new byte[]{'f', 'a', 'i', 'l', 'u', 'r', 'e', ' ', 'r', 'e', 'a', 's', 'o', 'n'});     
+ private static final ByteBuffer Key_Peers = ByteBuffer.wrap(new byte[]{'p','e','e','r','s'});
+ private static final ByteBuffer Key_Interval = ByteBuffer.wrap(new byte[]{'i','n','t','e','r','v','a','l'});
+ private static final ByteBuffer Key_IP = ByteBuffer.wrap(new byte[] { 'i','p' });
+ private static final ByteBuffer Key_Peer_ID = ByteBuffer.wrap(new byte[] {'p', 'e', 'e', 'r', ' ', 'i', 'd' });
+ private static final ByteBuffer Key_Port = ByteBuffer.wrap(new byte[] {'p', 'o', 'r', 't' });
+ private final static char[] HEX_CHARS = { '0', '1', '2', '3', '4', '5',
+ 	'6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+ 
+ /*
+  * Method: creates a new URL to pass to tracker
+  * @param
+  * @param
+  * @return requested URL
+  */
+ public URL createURL(int bytesDown, int bytesUp, int bytesLeft) {
+	 String urlString = (AnnounceUrl+"?"
+	        +"info_hash="+info_Hash_url
+	        +"&"+"peer_id="+peer_id+"&"
+	        +"port="+port+"&"
+	        +"uploaded="+bytesUp+"&"
+	        +"downloaded="+bytesDown+"&"
+	        +"left="+bytesLeft);
+	 try {
+         url = new URL(urlString);
+         
+     } catch (MalformedURLException e1) {
+    	 System.out.println("Error creating the URL!");
+    	 return null;
+     } 
+	 return url;
+ }//end createURL
+ 
+ 
+ 
+ /*
+  * Method: Generates a connection to the tracker
+  * @return Map of the tracker's response
+  * 
+  */
+ 	@SuppressWarnings("unchecked")
+	public Map connect(int bytesDown, int bytesUp, int bytesLeft, String event)throws IOException{
+ 	     Map<ByteBuffer, Object> trkMap = null;
 
-
-        try {
-            this.url = new URL(AnnounceUrl+"?"+"info_hash="+info_Hash_url+"&"+"peer_id="+peer_id+"port="+port+"&"+"uploaded="+uploaded+"&"+"downloaded="+downloaded+"&"+"left="+left);
-        } catch (MalformedURLException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
-          HttpURLConnection conn;
-          int connected=0;
-        try{
-
+ 		
+ 		//attempt connection with tracker
+        try{	
+        		url = createURL(bytesDown, bytesUp, bytesLeft);
+        		System.out.println(url.toString());
                 conn = (HttpURLConnection)url.openConnection();
-                //conn.setRequestMethod("GET");
+                conn.setRequestMethod("GET");
 
                 //get response code to see if connection success
                 connected = conn.getResponseCode();
                 System.out.println("Response code: "+connected);
-
-                // read each byte from input stream, write to output stream
-                final InputStream is = conn.getInputStream();
-                final ByteArrayOutputStream buff = new ByteArrayOutputStream();
-                final byte[] data = new byte[16384];
-                int i;
-                while((i = is.read(data, 0, data.length))!= -1){
-                    buff.write(data, 0, i);
+                
+        } catch(Exception e){
+                	System.out.println("Error connecting to tracker");
                 }
-                Bencoder2.decode(data);
-                System.out.println(url.toString());
-
-
-            }catch(IOException e){
-                System.out.println("IOException error!");
-                e.printStackTrace();
-            }catch(Exception e){
-                System.out.println("Exception error!");
-                e.printStackTrace();
+        
+        try{
+                //receive response
+                // read each byte from input stream, write to output stream
+                is = new DataInputStream(conn.getInputStream());
+               // buff = new ByteArrayOutputStream();
+                int size = conn.getContentLength();
+                trackerBytes = new byte[size];
+                is.readFully(trackerBytes);
+                is.close();
+                
+                
+                
+        }catch(Exception e){
+        	System.out.println("Error recieving response from tracker!");
+        	System.exit(1);
+        }
+                
+                //decode tracker response (byte array) to Map
+                try{
+                trkMap = (Map<ByteBuffer, Object>)Bencoder2.decode(trackerBytes);
+         
+            }catch(BencodingException be){
+                System.out.println("Bencoding error for decoding tracker response!");
+                System.exit(1);
+                // e.printStackTrace();
             }
+         
+        //setpeerIPList(trkMap);
+        System.out.println(peerIPList);
+        
+ 		return trkMap;
+	
+ 	} //end connect method
+ 	
+ 	
+ 	
+ 	
+ 	
+ 	
+ 	
+ 
+ 
+ 
+    @SuppressWarnings({ "deprecation", "unchecked" })
+    public Tracker(RUBTClient client) throws UnsupportedEncodingException{
+          this.AnnounceUrl= client.tInfo.announce_url.toString();
+          byte[] t = generateMyPeerId();
+          String testt = bytesToURL(t);
+          this.peer_id = testt;
+         // String iHash= encode(client.tInfo.info_hash.array());
+         // this.info_Hash_url=URLEncoder.encode(iHash,"UTF-8");
+          String iHash = bytesToURL(client.tInfo.info_hash.array());
+          this.info_Hash_url=iHash;
+          this.port= 6881;
+          this.uploaded= 0;
+          this.downloaded= 0;
+          this.left=client.tInfo.file_length;
+          
+          //connect to tracker
+          try{
+        	  
+       Map c = this.connect(this.downloaded, this.uploaded, this.left, null);
+       
+       Integer trackerInterval = (Integer) c.get(Key_Interval);
+   	System.out.println("trackerInterval: " + trackerInterval);
+   	/* Decode tracker Map response to String[] */
+   	System.out.println("1");
+   //    ToolKit.print(getPeers(c));
+   		getPeers(c);
+      // String[] test = decodeCompressedPeers(c);
+       
+       //System.out.println(test[0]);
+
+          }catch(Exception e){
+        	  System.out.println("Error connecting to tracker!");
+        	  System.exit(1);
+          }
+          System.out.println("Connection to tracker success!");
     }
+    
+    
+    
+    //method to generate a random peer_id
+    public static String generatePeerId(){
+        //first 4 digits remain the same to identify
+        String str = "8008";
+
+        //add 16 other random numbers to string
+        for(int i=4; i<20; i++){
+            str = str+((int)Math.floor(Math.random()*10)+1);
+        }
+        return str;
+    }
+
+	private static byte[] generateMyPeerId() {
+final byte[] peerId = new byte[20];
+// Hard code the first four bytes for easy identification
+System.arraycopy(RUBTClient.BYTES_GROUP, 0, peerId, 0,
+RUBTClient.BYTES_GROUP.length);
+// Randomly generate remaining 16 bytes
+final byte[] random = new byte[16];
+new Random().nextBytes(random);
+System.arraycopy(random, 0, peerId, 4, random.length);
+return peerId;
+}
+    
+
+    
+    /*
+     * Method retrieve list of peers from tracker response
+     */
+    @SuppressWarnings("unchecked")
+	public static LinkedList<Peer> getPeers(Map<ByteBuffer, Object> map) throws UnsupportedEncodingException {
+    	System.out.println("Decoding peers");
+    	
+    	ArrayList<Map<ByteBuffer, Object>> encodedPeerList = null;
+    	if(map.containsKey(Key_Peers)){
+    		System.out.println("Contains");
+    		encodedPeerList = (ArrayList<Map<ByteBuffer, Object>>)map.get(Key_Peers);
+    		
+    		//print encoded map
+    		ToolKit.print(encodedPeerList);
+    	}    	
+    	else{
+    		System.out.println("No peer list in tracker response!");
+    	}
+ 
+    	final LinkedList<Peer> peers = new LinkedList<Peer>();
+    	for(final Map<ByteBuffer, Object> peerMap : encodedPeerList){
+    		
+    		//retrieve peer_id
+    		ByteBuffer peer_IdBuff;
+    		byte[] peer_ID = null;
+    		if(peerMap.containsKey(Key_Peer_ID)){
+    			peer_IdBuff = (ByteBuffer)peerMap.get(Key_Peer_ID);
+    			peer_ID = peer_IdBuff.array();
+    			//System.out.println(pID);
+    		}
+    		
+    		//retrieve peer IP
+    		String peer_IP = null;
+    		if(peerMap.containsKey(Key_IP)){
+    			final ByteBuffer peer_IPBuff = (ByteBuffer)peerMap.get(Key_IP);
+    			peer_IP = new String(peer_IPBuff.array(), "UTF-8");
+    		}
+    		
+    		//retrieve peer port
+    		int peer_port = -1;
+    		if(peerMap.containsKey(Key_Port)){
+    			peer_port = (int)peerMap.get(Key_Port);
+    		}
+        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port);
+        	peers.add(peer);
+    	}
+    	return peers;
+    	}
+    
+    
+    
+    
     static final char[] CHAR_FOR_BYTE = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
     /** Encode byte data as a hex string... hex chars are UPPERCASE*/
     public static String encode(byte[] data){
@@ -94,4 +283,40 @@ public class Tracker {
         }
         return new String(store);
     }
+    
+
+    protected static String bytesToHexStr(final byte[] byteArr) {
+    	final char[] charArr = new char[byteArr.length * 2];
+    	for (int i = 0; i < byteArr.length; i++) {
+    		final int val = (byteArr[i] & 0xFF);
+    		final int charLoc = i << 1;
+    		charArr[charLoc] = HEX_CHARS[val >>> 4];
+    		charArr[charLoc + 1] = HEX_CHARS[val & 0x0F];
+    	}
+    	final String hexString = new String(charArr);
+    	return hexString;
+    }
+    /**
+     * Converts a byte array to an escaped URL for a BT tracker announce.
+     *
+     * @param byteArr
+     * the byte array to convert
+     * @return the URL-converted byte array
+     */
+    public static String bytesToURL(final byte[] byteArr) {
+    	final String hexString = bytesToHexStr(byteArr);
+    	final int len = hexString.length();
+    	final char[] charArr = new char[len + (len / 2)];
+    	int i = 0;
+    	int j = 0;
+    	while (i < len) {
+    		charArr[j++] = '%';
+    		charArr[j++] = hexString.charAt(i++);
+    		charArr[j++] = hexString.charAt(i++);
+    	}
+    	return new String(charArr);
+    }
+    
+    
 }
+
