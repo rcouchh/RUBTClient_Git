@@ -42,12 +42,14 @@ public class Tracker {
     private URL url;
     
    
+    private static ArrayList<Peer> peerList = new ArrayList<Peer>();
     private static ArrayList<String> peerIPList = new ArrayList<String>();
      HttpURLConnection conn;
      byte[] trackerBytes = null;
       DataInputStream is;
       ByteArrayOutputStream buff;
       int connected=0;
+ static final char[] CHAR_FOR_BYTE = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
  public static ByteBuffer keyFAILURE = ByteBuffer.wrap(new byte[]{'f', 'a', 'i', 'l', 'u', 'r', 'e', ' ', 'r', 'e', 'a', 's', 'o', 'n'});     
  private static final ByteBuffer Key_Peers = ByteBuffer.wrap(new byte[]{'p','e','e','r','s'});
  private static final ByteBuffer Key_Interval = ByteBuffer.wrap(new byte[]{'i','n','t','e','r','v','a','l'});
@@ -167,19 +169,17 @@ public class Tracker {
           this.left=client.tInfo.file_length;
           
           //connect to tracker
-          try{
-        	  
-       Map c = this.connect(this.downloaded, this.uploaded, this.left, null);
+          try{	  
+        	  Map c = this.connect(this.downloaded, this.uploaded, this.left, null);
+        	  Integer trackerInterval = (Integer) c.get(Key_Interval);
+        	  System.out.println("trackerInterval: " + trackerInterval);
+   	
+   	
+        	  /* Decode tracker Map response to String[] */
+        	  System.out.println("Decoding response");
+        	  //    ToolKit.print(getPeers(c));
+        	  getPeers(c);
        
-       Integer trackerInterval = (Integer) c.get(Key_Interval);
-   	System.out.println("trackerInterval: " + trackerInterval);
-   	/* Decode tracker Map response to String[] */
-   	System.out.println("1");
-   //    ToolKit.print(getPeers(c));
-   		getPeers(c);
-      // String[] test = decodeCompressedPeers(c);
-       
-       //System.out.println(test[0]);
 
           }catch(Exception e){
         	  System.out.println("Error connecting to tracker!");
@@ -223,20 +223,20 @@ return peerId;
 	public static LinkedList<Peer> getPeers(Map<ByteBuffer, Object> map) throws UnsupportedEncodingException {
     	System.out.println("Decoding peers");
     	
-    	ArrayList<Map<ByteBuffer, Object>> encodedPeerList = null;
+    	ArrayList<Map<ByteBuffer, Object>> encodedPeers = null;
     	if(map.containsKey(Key_Peers)){
     		System.out.println("Contains");
-    		encodedPeerList = (ArrayList<Map<ByteBuffer, Object>>)map.get(Key_Peers);
+    		encodedPeers = (ArrayList<Map<ByteBuffer, Object>>)map.get(Key_Peers);
     		
     		//print encoded map
-    		ToolKit.print(encodedPeerList);
+    		ToolKit.print(encodedPeers);
     	}    	
     	else{
     		System.out.println("No peer list in tracker response!");
     	}
  
     	final LinkedList<Peer> peers = new LinkedList<Peer>();
-    	for(final Map<ByteBuffer, Object> peerMap : encodedPeerList){
+    	for(final Map<ByteBuffer, Object> peerMap : encodedPeers){
     		
     		//retrieve peer_id
     		ByteBuffer peer_IdBuff;
@@ -262,13 +262,39 @@ return peerId;
         	final Peer peer = new Peer(peer_ID, peer_IP, peer_port);
         	peers.add(peer);
     	}
+    	
+    
+    	printPeers(peers);
     	return peers;
+    	
+    }//end getpeers
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    public static void printPeers(LinkedList<Peer> peers){
+    	for(int i=0; i<peers.size(); i++){
+    		System.out.println("Peer "+i+": ");
+    		System.out.println("Peer IP: "+peers.get(i).ip);
+    		System.out.println("Peer Port: "+peers.get(i).port);
+    		System.out.println("Peer_ID: "+new String(peers.get(i).peer_id));
+    		System.out.println("");
+    		System.out.println("");
+    		
     	}
+    }
     
     
     
     
-    static final char[] CHAR_FOR_BYTE = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    
+    
+    
     /** Encode byte data as a hex string... hex chars are UPPERCASE*/
     public static String encode(byte[] data){
         if(data == null || data.length==0){
