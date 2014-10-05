@@ -1,15 +1,88 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
-public class Peer {
+
+public class Peer extends Thread {
 	String ip;
 	int port;
-	byte[] peer_id;
 	
-	public Peer(byte[] peer_id, String ip, int port){
-		this.peer_id = peer_id;
+	private DataInputStream inStream = null;
+	private DataOutputStream outStream = null;
+	private static final byte[] Protocol = { 'B', 'i', 't', 'T', 'o',
+		'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o',
+		'l' };
+
+	 final byte[] info_hash;
+	final byte[] peerID;
+	 final byte[] clientID;
+	 private Socket socket;
+	
+	public Peer(final byte[] peerID, final String ip, final int port, 
+			final byte[] info_hash, final byte[] clientID){
+		this.peerID = peerID;
 		this.ip = ip;
 		this.port = port;
+		this.info_hash = info_hash;
+		this.clientID = clientID;
+		//this.clientID = clientID;
 		
 	}
 	
+	void disconnect() throws IOException {
+		this.socket.close();
+		this.inStream.close();
+		this.outStream.close();
+	}
+	
+	void connect() throws IOException{
+		//create socket
+		this.socket = null;
+		try{
+			System.out.println("Creating socket...");
+			this.socket = new Socket(this.ip, this.port);
+		}catch (UnknownHostException e){
+			System.out.print("Unable to retrieve host IP!");
+		}catch(IOException e){
+			System.out.println("IOException!");
+		}
+		
+		//check for socket connection
+		if(this.socket==null){
+			System.out.println("Unable to create socket!");
+		}
+		else{
+			System.out.println("Socket created!");
+		}
+		this.inStream = new DataInputStream(this.socket.getInputStream());
+		this.outStream = new DataOutputStream(this.socket.getOutputStream());
+		
+	}
+	
+	
+	public byte[] createHandshake(){
+		System.out.println("Generating handshake...");
+		
+		//allocate bytes for handshake
+		byte[] handshakeMsg = new byte[68];
+		
+		//start msg with bytes 19Bitorrent protocol
+		handshakeMsg[0] = 19;
+		System.arraycopy(Peer.Protocol, 0, handshakeMsg, 1, Peer.Protocol.length);
+		System.out.println("Handshake Msg 1: "+new String(handshakeMsg));
+		
+		//ERROR COMING FROM HERE
+		//add info_hash
+		System.arraycopy(this.info_hash, 0, handshakeMsg, 28, this.info_hash.length);
+		System.out.println("Handshake Msg 2: "+new String(handshakeMsg));
+
+		//add peer_id, should match info_hash
+		System.arraycopy(this.clientID, 0, handshakeMsg, 48, this.clientID.length);
+		System.out.println("Handshake Msg 3: "+new String(handshakeMsg));
+
+		return handshakeMsg;
+	}
 	
 }

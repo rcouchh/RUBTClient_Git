@@ -35,6 +35,7 @@ public class Tracker {
     private String AnnounceUrl;
     private String peer_id;
     private int port;
+    private byte[] info_hash;
     private String info_Hash_url;
     private int downloaded;
     private int left;
@@ -153,7 +154,6 @@ public class Tracker {
  
  
  
-    @SuppressWarnings({ "deprecation", "unchecked" })
     public Tracker(RUBTClient client) throws UnsupportedEncodingException{
           this.AnnounceUrl= client.tInfo.announce_url.toString();
           byte[] t = generateMyPeerId();
@@ -161,12 +161,16 @@ public class Tracker {
           this.peer_id = testt;
          // String iHash= encode(client.tInfo.info_hash.array());
          // this.info_Hash_url=URLEncoder.encode(iHash,"UTF-8");
+          this.info_hash = client.tInfo.info_hash.array();
           String iHash = bytesToURL(client.tInfo.info_hash.array());
           this.info_Hash_url=iHash;
           this.port= 6881;
           this.uploaded= 0;
           this.downloaded= 0;
           this.left=client.tInfo.file_length;
+          
+          byte[] shake;
+          Peer p;
           
           //connect to tracker
           try{	  
@@ -178,14 +182,33 @@ public class Tracker {
         	  /* Decode tracker Map response to String[] */
         	  System.out.println("Decoding response");
         	  //    ToolKit.print(getPeers(c));
+        	  
+        	  //get list of peers
         	  getPeers(c);
+        	  
+        	  //find correct peer with RUBT prefix in ID
+        	  p = findPeerWithPrefix();
+        	  
+        	  if(p==null){
+        		  System.out.println("Peer not found!");
+        	  }
+        	  
+        	  //open socket and connect to peer
+        	  p.connect();
+        	  
+        	  //create handshake message
+        	  p.createHandshake();
+        	  
+        	  p.disconnect();
+        	 
+        	  
        
 
           }catch(Exception e){
         	  System.out.println("Error connecting to tracker!");
         	  System.exit(1);
           }
-          System.out.println("Connection to tracker success!");
+      //    System.out.println("Connection to tracker success!");
     }
     
     
@@ -205,8 +228,8 @@ public class Tracker {
 	private static byte[] generateMyPeerId() {
 final byte[] peerId = new byte[20];
 // Hard code the first four bytes for easy identification
-System.arraycopy(RUBTClient.BYTES_GROUP, 0, peerId, 0,
-RUBTClient.BYTES_GROUP.length);
+System.arraycopy(RUBTClient.First_Bytes, 0, peerId, 0,
+RUBTClient.First_Bytes.length);
 // Randomly generate remaining 16 bytes
 final byte[] random = new byte[16];
 new Random().nextBytes(random);
@@ -259,30 +282,41 @@ return peerId;
     		if(peerMap.containsKey(Key_Port)){
     			peer_port = (int)peerMap.get(Key_Port);
     		}
-        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port);
+        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, null, null);
+        	peerList.add(peer);
         	peers.add(peer);
+        	
     	}
-    	
-    
     	printPeers(peers);
     	return peers;
     	
     }//end getpeers
     
     
+    //iterates through list of peers for entry with ID prefix 
+    public static Peer findPeerWithPrefix(){
+    	System.out.println("Searching for peer!");
+    	for(int i=0; i<peerList.size()-1; i++){
+    		byte[] peerID = peerList.get(i).peerID;
+    		String id = new String(peerID);
+    		
+    		//if ID has prefix 'RUBT' or '-AZ5400'
+    		if(id.startsWith("RUBT") || id.startsWith("-AZ5400")){
+    			System.out.println("Correct peer found!");
+        		System.out.println("Peer ID: "+id);
+    			return peerList.get(i);
+    		}	
+    	}
+    	return null;
+    }
     
-    
-    
-    
-    
-    
-    
+
     public static void printPeers(LinkedList<Peer> peers){
     	for(int i=0; i<peers.size(); i++){
     		System.out.println("Peer "+i+": ");
     		System.out.println("Peer IP: "+peers.get(i).ip);
     		System.out.println("Peer Port: "+peers.get(i).port);
-    		System.out.println("Peer_ID: "+new String(peers.get(i).peer_id));
+    		System.out.println("Peer_ID: "+new String(peers.get(i).peerID));
     		System.out.println("");
     		System.out.println("");
     		

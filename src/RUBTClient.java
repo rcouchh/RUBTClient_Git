@@ -24,7 +24,7 @@ import GivenTools.*;
     9. Save the file to the hard disk according to the second command-line
  *
  */
-public class RUBTClient {
+public class RUBTClient extends Thread{
 
     /**
      * @param args the command line arguments
@@ -34,7 +34,9 @@ public class RUBTClient {
 	   public final String writeFile; //file to write to
 	
 	   public String event; //event passed from tracker
-	   static final byte[] BYTES_GROUP = { 'G', 'P', '1', '6' };
+	   
+	   //hard code first 4 bytes of client PID
+	   static final byte[] First_Bytes = { 'R', 'C', 'D', 'T' };
 
     public static void main(String[] args) {
         // java -cp . RUBTClient somefile.torrent picture.jpeg
