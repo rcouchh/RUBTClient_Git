@@ -16,7 +16,7 @@ public class Peer extends Thread {
 		'l' };
 
 	 final byte[] info_hash;
-	final byte[] peerID;
+	 final byte[] peerID;
 	 final byte[] clientID;
 	 private Socket socket;
 	
@@ -31,6 +31,7 @@ public class Peer extends Thread {
 		
 	}
 	
+	//destroys each socket/stream
 	void disconnect() throws IOException {
 		this.socket.close();
 		this.inStream.close();
@@ -58,11 +59,10 @@ public class Peer extends Thread {
 		}
 		this.inStream = new DataInputStream(this.socket.getInputStream());
 		this.outStream = new DataOutputStream(this.socket.getOutputStream());
-		
 	}
 	
 	
-	public byte[] createHandshake(){
+	public byte[] createHandshake(byte[] peerID, byte[] info_hash){
 		System.out.println("Generating handshake...");
 		
 		//allocate bytes for handshake
@@ -71,17 +71,17 @@ public class Peer extends Thread {
 		//start msg with bytes 19Bitorrent protocol
 		handshakeMsg[0] = 19;
 		System.arraycopy(Peer.Protocol, 0, handshakeMsg, 1, Peer.Protocol.length);
-		System.out.println("Handshake Msg 1: "+new String(handshakeMsg));
 		
-		//ERROR COMING FROM HERE
 		//add info_hash
-		System.arraycopy(this.info_hash, 0, handshakeMsg, 28, this.info_hash.length);
-		System.out.println("Handshake Msg 2: "+new String(handshakeMsg));
+		System.arraycopy(info_hash, 0, handshakeMsg, 28, info_hash.length);
 
 		//add peer_id, should match info_hash
-		System.arraycopy(this.clientID, 0, handshakeMsg, 48, this.clientID.length);
-		System.out.println("Handshake Msg 3: "+new String(handshakeMsg));
+		System.arraycopy(peerID, 0, handshakeMsg, 48, peerID.length);
+		System.out.println("Handshake Msg: ");
+		System.out.println(new String(handshakeMsg));
 
+		
+		System.out.println("Handshake message generated successfully.");
 		return handshakeMsg;
 	}
 	

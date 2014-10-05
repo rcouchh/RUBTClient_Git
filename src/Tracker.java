@@ -35,8 +35,9 @@ public class Tracker {
     private String AnnounceUrl;
     private String peer_id;
     private int port;
-    private byte[] info_hash;
+    private static byte[] info_hash;
     private String info_Hash_url;
+    private int interval;
     private int downloaded;
     private int left;
     private int uploaded;
@@ -62,8 +63,9 @@ public class Tracker {
  
  /*
   * Method: creates a new URL to pass to tracker
-  * @param
-  * @param
+  * @param bytesDown
+  * @param bytesUp
+  * @param bytesleft
   * @return requested URL
   */
  public URL createURL(int bytesDown, int bytesUp, int bytesLeft) {
@@ -88,7 +90,7 @@ public class Tracker {
  
  /*
   * Method: Generates a connection to the tracker
-  * @return Map of the tracker's response
+  * @return trkMap of the tracker's response
   * 
   */
  	@SuppressWarnings("unchecked")
@@ -156,11 +158,9 @@ public class Tracker {
  
     public Tracker(RUBTClient client) throws UnsupportedEncodingException{
           this.AnnounceUrl= client.tInfo.announce_url.toString();
-          byte[] t = generateMyPeerId();
-          String testt = bytesToURL(t);
-          this.peer_id = testt;
-         // String iHash= encode(client.tInfo.info_hash.array());
-         // this.info_Hash_url=URLEncoder.encode(iHash,"UTF-8");
+          byte[] id = generateMyPeerId();
+          String idURL = bytesToURL(id);
+          this.peer_id = idURL;
           this.info_hash = client.tInfo.info_hash.array();
           String iHash = bytesToURL(client.tInfo.info_hash.array());
           this.info_Hash_url=iHash;
@@ -175,7 +175,9 @@ public class Tracker {
           //connect to tracker
           try{	  
         	  Map c = this.connect(this.downloaded, this.uploaded, this.left, null);
-        	  Integer trackerInterval = (Integer) c.get(Key_Interval);
+        	  //retrieve interval and set global var
+        	  int trackerInterval = (int)c.get(Key_Interval);
+        	  interval = trackerInterval;
         	  System.out.println("trackerInterval: " + trackerInterval);
    	
    	
@@ -193,11 +195,13 @@ public class Tracker {
         		  System.out.println("Peer not found!");
         	  }
         	  
-        	  //open socket and connect to peer
+        	  //open TCP socket and connect to peer
         	  p.connect();
         	  
         	  //create handshake message
-        	  p.createHandshake();
+        	  p.createHandshake(p.peerID, p.info_hash);
+        	  
+        	  //send handshake
         	  
         	  p.disconnect();
         	 
@@ -269,23 +273,20 @@ return peerId;
     			peer_ID = peer_IdBuff.array();
     			//System.out.println(pID);
     		}
-    		
     		//retrieve peer IP
     		String peer_IP = null;
     		if(peerMap.containsKey(Key_IP)){
     			final ByteBuffer peer_IPBuff = (ByteBuffer)peerMap.get(Key_IP);
     			peer_IP = new String(peer_IPBuff.array(), "UTF-8");
     		}
-    		
     		//retrieve peer port
     		int peer_port = -1;
     		if(peerMap.containsKey(Key_Port)){
     			peer_port = (int)peerMap.get(Key_Port);
     		}
-        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, null, null);
+        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, info_hash, null);
         	peerList.add(peer);
         	peers.add(peer);
-        	
     	}
     	printPeers(peers);
     	return peers;
@@ -293,10 +294,13 @@ return peerId;
     }//end getpeers
     
     
-    //iterates through list of peers for entry with ID prefix 
+    /*
+     * Method iterates through list of peers for entry with ID prefix 
+   	 * @return peer with the correct ID prefix
+     */
     public static Peer findPeerWithPrefix(){
     	System.out.println("Searching for peer!");
-    	for(int i=0; i<peerList.size()-1; i++){
+    	for(int i=0; i<peerList.size(); i++){
     		byte[] peerID = peerList.get(i).peerID;
     		String id = new String(peerID);
     		
@@ -310,7 +314,10 @@ return peerId;
     	return null;
     }
     
-
+/*
+ * Method prints list of peers with their corresponding data
+ * @param list of peers to be traversed
+ */
     public static void printPeers(LinkedList<Peer> peers){
     	for(int i=0; i<peers.size(); i++){
     		System.out.println("Peer "+i+": ");
