@@ -146,13 +146,6 @@ public class Tracker {
  		return trkMap;
 	
  	} //end connect method
- 	
- 	
- 	
- 	
- 	
- 	
- 	
  
  
  
@@ -202,6 +195,7 @@ public class Tracker {
         	  p.createHandshake(p.peerID, p.info_hash);
         	  
         	  //send handshake
+        	  p.verifyHandshake(p.info_hash);
         	  
         	  p.disconnect();
         	 

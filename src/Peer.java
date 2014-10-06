@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 
 public class Peer extends Thread {
@@ -62,7 +63,7 @@ public class Peer extends Thread {
 	}
 	
 	
-	public byte[] createHandshake(byte[] peerID, byte[] info_hash){
+	public byte[] createHandshake(byte[] peerID, byte[] info_hash) throws IOException{
 		System.out.println("Generating handshake...");
 		
 		//allocate bytes for handshake
@@ -82,7 +83,59 @@ public class Peer extends Thread {
 
 		
 		System.out.println("Handshake message generated successfully.");
+		
+		System.out.println("sending handshake msg");
+		this.outStream.write(handshakeMsg);
+		this.outStream.flush();
+		byte[] peerHandshakeMsg = new byte[68];
+		//this.inStream.read(peerHandshakeMsg);
+		//System.out.println("retrieving peer handshake");
+		//System.out.println("Peer handshake: "+new String(peerHandshakeMsg));
 		return handshakeMsg;
 	}
+	
+	public boolean verifyHandshake(byte[] infoHash) {
+		byte[] torrInfoHash = infoHash;
+		byte[] handshakeInfoHash = new byte[20];
+		byte[] handshakeResponseMsg = new byte[68];
+		int index=0;
+		
+		try{
+			//read response handshake msg from peer
+			this.inStream.readFully(handshakeResponseMsg);
+			System.arraycopy(handshakeResponseMsg, 28, handshakeInfoHash, 0, 20);
+			
+			//verify length
+			if(handshakeResponseMsg.length!=68){
+				System.out.println("Incorrect length of response!");
+				return false;
+			}
+			
+			//verify protocol
+			final byte[] otherProtocol = new byte[19];
+			System.arraycopy(handshakeResponseMsg, 1, otherProtocol, 0,
+			Peer.Protocol.length);
+			if (!Arrays.equals(otherProtocol, Peer.Protocol)) {
+				System.out.println("Incorrect protocol of response!");
+				return false;
+			}
+			
+			// Check info hash against info hash from .torrent file
+			final byte[] otherInfoHash = new byte[20];
+			System.arraycopy(handshakeResponseMsg, 28, otherInfoHash, 0, 20);
+			if (!Arrays.equals(otherInfoHash, this.info_hash)) {
+				System.out.println("Info hashes dont match!");
+				return false;
+			}
+				//handshakeconfirmed = true;
+				System.out.println("true - match");
+				return true;
+			
+		}catch (Exception e){
+			System.out.println("Error reading handshake response msg!");
+		}
+		return true;
+	}
+	
 	
 }
