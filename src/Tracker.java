@@ -94,7 +94,7 @@ public class Tracker {
   * 
   */
  	@SuppressWarnings("unchecked")
-	public Map connect(int bytesDown, int bytesUp, int bytesLeft, String event)throws IOException{
+	public Map<ByteBuffer, Object> connect(int bytesDown, int bytesUp, int bytesLeft, String event)throws IOException{
  	     Map<ByteBuffer, Object> trkMap = null;
 
  		
@@ -167,9 +167,9 @@ public class Tracker {
           
           //connect to tracker
           try{	  
-        	  Map c = this.connect(this.downloaded, this.uploaded, this.left, null);
+        	  Map<ByteBuffer,Object> c = this.connect(this.downloaded, this.uploaded, this.left, null);
         	  //retrieve interval and set global var
-        	  int trackerInterval = (int)c.get(Key_Interval);
+        	  int trackerInterval = (Integer)c.get(Key_Interval);
         	  interval = trackerInterval;
         	  System.out.println("trackerInterval: " + trackerInterval);
    	
@@ -189,15 +189,15 @@ public class Tracker {
         	  }
         	  
         	  //open TCP socket and connect to peer
-        	  p.connect();
+        	  p.start();
         	  
         	  //create handshake message
-        	  p.createHandshake(p.peerID, p.info_hash);
+        	 // p.createHandshake(p.peerID, p.info_hash);
         	  
         	  //send handshake
-        	  p.verifyHandshake(p.info_hash);
+        	// Boolean check= p.verifyHandshake(p.info_hash);
+        	
         	  
-        	  p.disconnect();
         	 
         	  
        
@@ -276,7 +276,7 @@ return peerId;
     		//retrieve peer port
     		int peer_port = -1;
     		if(peerMap.containsKey(Key_Port)){
-    			peer_port = (int)peerMap.get(Key_Port);
+    			peer_port = (Integer)peerMap.get(Key_Port);
     		}
         	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, info_hash, null);
         	peerList.add(peer);
