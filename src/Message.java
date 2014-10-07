@@ -112,11 +112,12 @@ public class Message {
 		return null;
 	}
 	
-	public void write(final DataOutputStream outStream, Message msg) throws IOException {
+	public static void write(final DataOutputStream outStream, Message msg) throws IOException {
 		
-		if (msg.length > 0) {
+		outStream.writeInt(msg.length);
 			try{
-			outStream.writeInt(this.length);
+		if (msg.length > 0) {
+			outStream.writeInt(msg.MessageID);
 			switch(msg.MessageID){
 			case M_Bitfield:{
 				Message_Bitfield message= (Message_Bitfield) msg;
@@ -146,6 +147,7 @@ public class Message {
 		
 				
 			}
+		}
 			outStream.flush();
 			}catch(NullPointerException npe){
 			    throw new IOException("Cannot write to a null stream.");
@@ -154,9 +156,9 @@ public class Message {
 			// Write payload for Have, Bitfield, Request, Piece, Cancel
 			// messages
 			//this.writePayload(outStream);
-		}
+		
 
-		outStream.flush();
+		
 	}
 	public static class Message_Have extends Message{
 		private final int Index;
