@@ -315,8 +315,8 @@ return peerId;
     public static void printPeers(LinkedList<Peer> peers){
     	for(int i=0; i<peers.size(); i++){
     		System.out.println("Peer "+i+": ");
-    		System.out.println("Peer IP: "+peers.get(i).ip);
-    		System.out.println("Peer Port: "+peers.get(i).port);
+    		System.out.println("Peer IP: "+peers.get(i).getIP());
+    		System.out.println("Peer Port: "+peers.get(i).getPort());
     		System.out.println("Peer_ID: "+new String(peers.get(i).peerID));
     		System.out.println("");
     		System.out.println("");
