@@ -15,9 +15,9 @@ public class Peer extends Thread {
 	//max num of piece messages for queue
 	public static final int MAX_PIECES_QUEUE= 20;
 	//inputstream from the peer
-	private DataInputStream inStream;
+	private DataInputStream inStream= null;
 	//outputstream to the pear
-	private DataOutputStream outStream;
+	private DataOutputStream outStream= null;
 	//starting piece of Bit torrent handshake protocol
 	private static final byte[] Protocol = {'B', 'i', 't', 'T', 'o',
 		'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o',
@@ -46,7 +46,7 @@ public class Peer extends Thread {
 		this.port = port;
 		this.info_hash = info_hash;
 		this.clientID = clientID;
-		
+		//this.clientID = clientID;
 		
 	}
 	public String getIP(){
@@ -94,8 +94,8 @@ public class Peer extends Thread {
 		byte[] handshakeMsg = new byte[68];
 		
 		//start msg with bytes 19Bitorrent protocol
-		//handshakeMsg[0] = 19;
-		System.arraycopy(Peer.Protocol, 0, handshakeMsg, 0, Peer.Protocol.length);
+		handshakeMsg[0] = 19;
+		System.arraycopy(Peer.Protocol, 0, handshakeMsg, 1, Peer.Protocol.length);
 		
 		//add info_hash
 		System.arraycopy(info_hash, 0, handshakeMsg, 28, info_hash.length);
@@ -115,46 +115,11 @@ public class Peer extends Thread {
 		//this.inStream.read(peerHandshakeMsg);
 		//System.out.println("retrieving peer handshake");
 		//System.out.println("Peer handshake: "+new String(peerHandshakeMsg));
-		boolean verify=verifyHandshake(this.info_hash);
-		if(verify==true){
-			System.out.println("nigga we made it");
-			Message.write(this.outStream,Message.Interested);
-		}
+	
 		
 	}
 	
-	public byte[] createHandshake(byte[] peerID, byte[] info_hash) throws IOException{
-		System.out.println("Generating handshake...");
-		
-		//allocate bytes for handshake
-		byte[] handshakeMsg = new byte[68];
-		
-		//start msg with bytes 19Bitorrent protocol
-		handshakeMsg[0] = 19;
-		System.arraycopy(Peer.Protocol, 0, handshakeMsg, 1, Peer.Protocol.length);
-		
-		//add info_hash
-		System.arraycopy(info_hash, 0, handshakeMsg, 28, info_hash.length);
-
-		//add peer_id, should match info_hash
-		System.arraycopy(peerID, 0, handshakeMsg, 48, peerID.length);
-		System.out.println("Handshake Msg: ");
-		System.out.println(new String(handshakeMsg));
-
-		
-		System.out.println("Handshake message generated successfully.");
-		
-		System.out.println("sending handshake msg");
-		this.outStream.write(handshakeMsg);
-		this.outStream.flush();
-		byte[] peerHandshakeMsg = new byte[68];
-		//this.inStream.read(peerHandshakeMsg);
-		//System.out.println("retrieving peer handshake");
-		//System.out.println("Peer handshake: "+new String(peerHandshakeMsg));
-		return handshakeMsg;
-	}
-	
-	public boolean verifyHandshake(byte[] infoHash) {
+	public boolean verifyHandShake(byte[] infoHash) {
 		byte[] torrInfoHash = infoHash;
 		byte[] handshakeInfoHash = new byte[20];
 		byte[] handshakeResponseMsg = new byte[68];
@@ -162,15 +127,18 @@ public class Peer extends Thread {
 		
 		try{
 			//read response handshake msg from peer
-			this.inStream.readFully(handshakeResponseMsg);
+			this.inStream.read(handshakeResponseMsg);
+			System.out.println("Response handshake message: "+new String(handshakeResponseMsg));
 			System.arraycopy(handshakeResponseMsg, 28, handshakeInfoHash, 0, 20);
 			
+			System.out.println("Verifying length...");
 			//verify length
 			if(handshakeResponseMsg.length!=68){
 				System.out.println("Incorrect length of response!");
 				return false;
 			}
 			
+			System.out.println("Verifying protocol...");
 			//verify protocol
 			final byte[] otherProtocol = new byte[19];
 			System.arraycopy(handshakeResponseMsg, 1, otherProtocol, 0,
@@ -180,6 +148,8 @@ public class Peer extends Thread {
 				return false;
 			}
 			
+			System.out.println("Verifying info_hash...");
+
 			// Check info hash against info hash from .torrent file
 			final byte[] otherInfoHash = new byte[20];
 			System.arraycopy(handshakeResponseMsg, 28, otherInfoHash, 0, 20);
@@ -188,11 +158,12 @@ public class Peer extends Thread {
 				return false;
 			}
 				//handshakeconfirmed = true;
-				System.out.println("true - match");
+				System.out.println("Response handshake verified!");
 				return true;
 			
-		}catch (Exception e){
+		}catch (IOException e){
 			System.out.println("Error reading handshake response msg!");
+			System.exit(1);
 		}
 		return true;
 	}
@@ -200,6 +171,16 @@ public class Peer extends Thread {
 		try {
 			connect();
 			createHandShake(peerID,info_hash);
+			boolean verify=verifyHandShake(this.info_hash);
+			if(verify==true){
+				System.out.println("nigga we made it");
+			}
+			
+			//send interested message
+			Message.write(outStream, Message.Interested);
+			Message m = Message.read(inStream);
+			//System.out.println(m.getMessageId());
+			
 			disconnect();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
