@@ -42,7 +42,7 @@ public class Tracker {
     private int left;
     private int uploaded;
     private URL url;
-    
+    public static byte[] clientID;
    
     private static ArrayList<Peer> peerList = new ArrayList<Peer>();
     private static ArrayList<String> peerIPList = new ArrayList<String>();
@@ -152,6 +152,7 @@ public class Tracker {
     public Tracker(RUBTClient client) throws UnsupportedEncodingException{
           this.AnnounceUrl= client.tInfo.announce_url.toString();
           byte[] id = generateMyPeerId();
+          this.clientID = id;
           String idURL = bytesToURL(id);
           this.peer_id = idURL;
           this.info_hash = client.tInfo.info_hash.array();
@@ -250,7 +251,7 @@ return peerId;
     		encodedPeers = (ArrayList<Map<ByteBuffer, Object>>)map.get(Key_Peers);
     		
     		//print encoded map
-    		ToolKit.print(encodedPeers);
+    	//	ToolKit.print(encodedPeers);
     	}    	
     	else{
     		System.out.println("No peer list in tracker response!");
@@ -278,7 +279,7 @@ return peerId;
     		if(peerMap.containsKey(Key_Port)){
     			peer_port = (Integer)peerMap.get(Key_Port);
     		}
-        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, info_hash, null);
+        	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, info_hash, clientID);
         	peerList.add(peer);
         	peers.add(peer);
     	}

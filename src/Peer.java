@@ -5,6 +5,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
+import GivenTools.ToolKit;
+
 
 
 
@@ -101,7 +103,7 @@ public class Peer extends Thread {
 		System.arraycopy(info_hash, 0, handshakeMsg, 28, info_hash.length);
 
 		//add peer_id, should match info_hash
-		System.arraycopy(peerID, 0, handshakeMsg, 48, peerID.length);
+		System.arraycopy(this.clientID, 0, handshakeMsg, 48, peerID.length);
 		System.out.println("Handshake Msg: ");
 		System.out.println(new String(handshakeMsg));
 
@@ -119,7 +121,7 @@ public class Peer extends Thread {
 		
 	}
 	
-	public boolean verifyHandShake(byte[] infoHash) {
+	public boolean verifyHandShake(byte[] infoHash) throws IOException {
 		byte[] torrInfoHash = infoHash;
 		byte[] handshakeInfoHash = new byte[20];
 		byte[] handshakeResponseMsg = new byte[68];
@@ -135,6 +137,7 @@ public class Peer extends Thread {
 			//verify length
 			if(handshakeResponseMsg.length!=68){
 				System.out.println("Incorrect length of response!");
+				this.disconnect();
 				return false;
 			}
 			
@@ -145,6 +148,7 @@ public class Peer extends Thread {
 			Peer.Protocol.length);
 			if (!Arrays.equals(otherProtocol, Peer.Protocol)) {
 				System.out.println("Incorrect protocol of response!");
+				this.disconnect();
 				return false;
 			}
 			
@@ -155,6 +159,7 @@ public class Peer extends Thread {
 			System.arraycopy(handshakeResponseMsg, 28, otherInfoHash, 0, 20);
 			if (!Arrays.equals(otherInfoHash, this.info_hash)) {
 				System.out.println("Info hashes dont match!");
+				this.disconnect();
 				return false;
 			}
 				//handshakeconfirmed = true;
@@ -163,10 +168,13 @@ public class Peer extends Thread {
 			
 		}catch (IOException e){
 			System.out.println("Error reading handshake response msg!");
+			this.disconnect();
 			System.exit(1);
 		}
 		return true;
 	}
+
+	
 	public void run(){
 		try {
 			connect();
@@ -176,15 +184,31 @@ public class Peer extends Thread {
 				System.out.println("nigga we made it");
 			}
 			
+			System.out.println("Available: "+this.inStream.available());
+			
 			//send interested message
-			Message.write(outStream, Message.Interested);
-			Message m = Message.read(inStream);
+			Message.write(this.outStream, Message.Interested);
+			System.out.println("Interested message sent!");
+			if(this.inStream==null){
+				System.out.println("instream null (peer)");
+			}
+			
+			
+			//read response
+			System.out.println("reading instream");
+			Message m = Message.read(this.inStream);
+			if(m==null){
+				System.out.println("Message is null");
+			}
+			if(inStream==null){
+				System.out.println("InStream is null");
+			}
 			//System.out.println(m.getMessageId());
 			
-			disconnect();
-		} catch (IOException e) {
+			//disconnect();
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			System.out.println("unable to connect and verify handshake");
+			System.out.println("Error: "+e.getMessage());
 		}
 		
 		

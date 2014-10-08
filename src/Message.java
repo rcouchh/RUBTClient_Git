@@ -47,6 +47,7 @@ public class Message {
 	public void writePayload(final DataOutputStream dos) throws IOException {
 		// Nothing here
 	}
+	
 	/**
 	 * 
 	 * @param readMe
@@ -54,16 +55,23 @@ public class Message {
 	 * @return message on the stream, waiting until message arrives
 	 * @throws IOException
 	 */
-	public static Message read( DataInputStream readMe) throws IOException{
-		
+	public static Message read(DataInputStream readMe) throws IOException{
+		//DataInputStream readMe = new DataInputStream(inputStream);
+		//if(readMe!=null){
+		//	System.out.println(readMe.read());
+	//	}
+		System.out.println("reading int1...");
 		final int length = readMe.readInt();
+		System.out.println("Length = "+length);
+
 		//length 0 => keepAlive message
 		if(length==0){
 			return Message.keepAlive;
 		}
 		//get messageID
+		System.out.println("reading byte...");
 		final byte ID= readMe.readByte();
-		
+		System.out.println("read byte! : "+ID);
 		int pieceIndex;
 		int byteOffset;
 		int request_length;
@@ -113,7 +121,6 @@ public class Message {
 	}
 	
 	public static void write(final DataOutputStream outStream, Message msg) throws IOException {
-		
 		outStream.writeInt(msg.length);
 			try{
 		if (msg.length > 0) {
