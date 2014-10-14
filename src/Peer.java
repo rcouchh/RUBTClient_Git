@@ -25,7 +25,7 @@ public class Peer extends Thread {
 		'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o',
 		'l' };
 	//peers ip address
-	private final String ip;
+	 final String ip;
 	//peers port number
 	private final int port;
 	//infohash of this torrent
@@ -36,6 +36,10 @@ public class Peer extends Thread {
 	 final byte[] clientID;
 	 //socket connecting the client to peer
 	 private Socket socket;
+	 //track pieces that the client will want to download
+	 private  byte [] bitfield;
+	  // Total number of pieces in the torrent. 
+	  private int numPieces;
 	 //the piece that client is currently  requesting from peer
 	 private volatile Message.PieceMessage reqPiece=null;
 	 //to keep track if peer has already validated handshake
@@ -173,7 +177,6 @@ public class Peer extends Thread {
 		}
 		return true;
 	}
-
 	
 	public void run(){
 		try {
@@ -181,7 +184,7 @@ public class Peer extends Thread {
 			createHandShake(peerID,info_hash);
 			boolean verify=verifyHandShake(this.info_hash);
 			if(verify==true){
-				System.out.println("nigga we made it");
+				//initiatePeerInteraction();
 			}
 			
 			System.out.println("Available: "+this.inStream.available());
@@ -205,13 +208,23 @@ public class Peer extends Thread {
 			}
 			//System.out.println(m.getMessageId());
 			
-			//disconnect();
+			disconnect();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			System.out.println("Error: "+e.getMessage());
 		}
 		
 		
+		
+	}
+	public void handleMessage(Message m){
+		byte MID= m.getMessageId();
+		switch(MID){
+		case Message.M_Have:
+			
+			
+		
+		}
 		
 	}
 	

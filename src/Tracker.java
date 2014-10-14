@@ -43,9 +43,9 @@ public class Tracker {
     private int uploaded;
     private URL url;
     public static byte[] clientID;
-   
-    private static ArrayList<Peer> peerList = new ArrayList<Peer>();
-    private static ArrayList<String> peerIPList = new ArrayList<String>();
+    private Peer peer;
+    //private static ArrayList<Peer> peerList = new ArrayList<Peer>();
+    //private static ArrayList<String> peerIPList = new ArrayList<String>();
      HttpURLConnection conn;
      byte[] trackerBytes = null;
       DataInputStream is;
@@ -68,7 +68,7 @@ public class Tracker {
   * @param bytesleft
   * @return requested URL
   */
- public URL createURL(int bytesDown, int bytesUp, int bytesLeft) {
+/* public URL createURL(int bytesDown, int bytesUp, int bytesLeft) {
 	 String urlString = (AnnounceUrl+"?"
 	        +"info_hash="+info_Hash_url
 	        +"&"+"peer_id="+peer_id+"&"
@@ -85,7 +85,7 @@ public class Tracker {
      } 
 	 return url;
  }//end createURL
- 
+ */
  
  
  /*
@@ -94,13 +94,13 @@ public class Tracker {
   * 
   */
  	@SuppressWarnings("unchecked")
-	public Map<ByteBuffer, Object> connect(int bytesDown, int bytesUp, int bytesLeft, String event)throws IOException{
+	public Map<ByteBuffer, Object> connect(URL url)throws IOException{
  	     Map<ByteBuffer, Object> trkMap = null;
 
  		
  		//attempt connection with tracker
         try{	
-        		url = createURL(bytesDown, bytesUp, bytesLeft);
+        		
         		System.out.println(url.toString());
                 conn = (HttpURLConnection)url.openConnection();
                 conn.setRequestMethod("GET");
@@ -141,7 +141,7 @@ public class Tracker {
             }
          
         //setpeerIPList(trkMap);
-        System.out.println(peerIPList);
+        //System.out.println(peerIPList);
         
  		return trkMap;
 	
@@ -149,25 +149,24 @@ public class Tracker {
  
  
  
-    public Tracker(RUBTClient client) throws UnsupportedEncodingException{
-          this.AnnounceUrl= client.tInfo.announce_url.toString();
-          byte[] id = generateMyPeerId();
-          this.clientID = id;
-          String idURL = bytesToURL(id);
+    public Tracker(final byte[]clientId, final byte[] info_hash, final String announceUrl, final int port,TorrentInfo t) throws UnsupportedEncodingException{
+          this.AnnounceUrl=announceUrl;
+          this.clientID = clientId;
+          String idURL = bytesToURL(clientId);
           this.peer_id = idURL;
-          this.info_hash = client.tInfo.info_hash.array();
-          String iHash = bytesToURL(client.tInfo.info_hash.array());
+          this.info_hash = info_hash;
+          String iHash = bytesToURL(info_hash);
           this.info_Hash_url=iHash;
-          this.port= 6881;
-          this.uploaded= 0;
-          this.downloaded= 0;
-          this.left=client.tInfo.file_length;
+          this.port= port;
+          //this.uploaded= 0;
+         // this.downloaded= 0;
+         // this.left=t.file_length;
           
-          byte[] shake;
-          Peer p;
+         // byte[] shake;
+        //  Peer p;
           
           //connect to tracker
-          try{	  
+         /* try{	  
         	  Map<ByteBuffer,Object> c = this.connect(this.downloaded, this.uploaded, this.left, null);
         	  //retrieve interval and set global var
         	  int trackerInterval = (Integer)c.get(Key_Interval);
@@ -175,7 +174,7 @@ public class Tracker {
         	  System.out.println("trackerInterval: " + trackerInterval);
    	
    	
-        	  /* Decode tracker Map response to String[] */
+        	  //Decode tracker Map response to String[] 
         	  System.out.println("Decoding response");
         	  //    ToolKit.print(getPeers(c));
         	  
@@ -207,34 +206,49 @@ public class Tracker {
         	  System.out.println("Error connecting to tracker!");
         	  System.exit(1);
           }
+          */
       //    System.out.println("Connection to tracker success!");
     }
     
     
     
-    //method to generate a random peer_id
-    public static String generatePeerId(){
-        //first 4 digits remain the same to identify
-        String str = "8008";
+  
 
-        //add 16 other random numbers to string
-        for(int i=4; i<20; i++){
-            str = str+((int)Math.floor(Math.random()*10)+1);
-        }
-        return str;
+    public Peer announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event){
+    	 LinkedList<Peer> peersList;
+    	String urlString = (AnnounceUrl+"?"
+    		        +"info_hash="+info_Hash_url
+    		        +"&peer_id="+peer_id+"&port="+port+
+    		        "&uploaded="+bytesUploaded+
+    		        "&downloaded="+bytesDownloaded+"&left="+bytesLeft);
+    	 		if(event !=null && !event.isEmpty()){
+    	 		urlString+="&event="+event;    	 	
+    	 		}
+    	 			
+    		 try {
+    	         url = new URL(urlString);
+    	         
+    	     } catch (MalformedURLException e1) {
+    	    	 System.out.println("Error creating the URL!");
+    	    	 return null;
+    	     } 
+    		 try {
+				Map<ByteBuffer,Object> c= connect(url);
+				this.interval=(Integer)c.get(Key_Interval);
+				System.out.println("trackerInterval: " + interval);
+				System.out.println("getting peerslist..");
+				peersList=getPeers(c);
+				peer=findPeerWithPrefix(peersList);
+				if(peer== null){
+					System.out.println("peer not found!");
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		 return peer;
+    		 
     }
-
-	private static byte[] generateMyPeerId() {
-final byte[] peerId = new byte[20];
-// Hard code the first four bytes for easy identification
-System.arraycopy(RUBTClient.First_Bytes, 0, peerId, 0,
-RUBTClient.First_Bytes.length);
-// Randomly generate remaining 16 bytes
-final byte[] random = new byte[16];
-new Random().nextBytes(random);
-System.arraycopy(random, 0, peerId, 4, random.length);
-return peerId;
-}
     
 
     
@@ -280,7 +294,7 @@ return peerId;
     			peer_port = (Integer)peerMap.get(Key_Port);
     		}
         	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, info_hash, clientID);
-        	peerList.add(peer);
+        	//peerList.add(peer);
         	peers.add(peer);
     	}
     	printPeers(peers);
@@ -290,20 +304,22 @@ return peerId;
     
     
     /*
-     * Method iterates through list of peers for entry with ID prefix 
-   	 * @return peer with the correct ID prefix
+     * Method iterates through list of peers for phase2: entry with 128.6.171.130 and 128.6.171.131
+   	 * @return peer with the correct Ip prefix
      */
-    public static Peer findPeerWithPrefix(){
+    
+    public static Peer findPeerWithPrefix(LinkedList<Peer> p){
     	System.out.println("Searching for peer!");
-    	for(int i=0; i<peerList.size(); i++){
-    		byte[] peerID = peerList.get(i).peerID;
+    	LinkedList<Peer> temp;
+    	for( temp= p; temp!=null; temp.pop()){
+    		byte[] peerID =temp.peek().peerID;
     		String id = new String(peerID);
     		
     		//if ID has prefix 'RUBT' or '-AZ5400'
     		if(id.startsWith("RUBT") || id.startsWith("-AZ5400")){
     			System.out.println("Correct peer found!");
         		System.out.println("Peer ID: "+id);
-    			return peerList.get(i);
+    			return temp.peek();
     		}	
     	}
     	return null;

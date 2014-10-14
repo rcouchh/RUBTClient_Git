@@ -1,6 +1,7 @@
 
 import java.io.*;
 import java.net.*;
+import java.util.Random;
 
 import GivenTools.*;
 
@@ -29,15 +30,7 @@ public class RUBTClient extends Thread{
     /**
      * @param args the command line arguments
      */
-	   public final TorrentInfo tInfo;// torrentinfo object
-
-	   public final String writeFile; //file to write to
-	
-	   public String event; //event passed from tracker
 	   
-	   //hard code first 4 bytes of client PID
-	   static final byte[] First_Bytes = { 'R', 'C', 'D', 'T' };
-
     public static void main(String[] args) {
         // java -cp . RUBTClient somefile.torrent picture.jpeg
         //args[0]="http://128.6.5.130:6969/announce";
@@ -91,41 +84,129 @@ public class RUBTClient extends Thread{
         }catch (final BencodingException b){
             System.out.println("Bencoding error! Unable to create TorrentInfo object.");
         }
-        
-        //initialize client
-        client = new RUBTClient(tInfo,args[1]);
+        RUBTClient localClient;
+    	   //initialize client
+          localClient = new RUBTClient(tInfo,args[1]);
+          localClient.start();
      
         //initialize tracker, make connection
         System.out.println("Initializing tracker, connecting...");
-        try {
-			Tracker track = new Tracker(client);
-			
-		} catch (Exception e) {
-			System.out.println("Error creating/connecting to the tracker!");
-			System.exit(1);
-		}
+        
         
         
     }//end main
+ 
+    public final TorrentInfo tInfo;// torrentinfo object
+  
+    private final String writeFileName; // name of desired file
+	private final byte[] clientId= generateMyPeerId();
+	private Peer peer;
+    private RandomAccessFile writeFile;//actual file
+    private int fileLength;//length of write file
+    public String event; //event passed from tracker
+	private int port= 6881;
+	//hard code first 4 bytes of client PID
+	static final byte[] First_Bytes = { 'R', 'C', 'D', 'T' };
+	
+	//clients bitfield
+	private byte[] bitfield;
+	
+	//# bytes downloaded by client at given point
+	private int downloaded;
+	//for phase 2 uploading to peers
+	private int uploaded;
+	
+	//bytes left to download
+	private int left;
+	
+	//total pieces of file
+	private final int totalPieces;
+	//length of the pieces 
+	private final int pieceLength;
+	// the tracker this client is interfacing with
+	Tracker tracker;
+	//boolean to keep all threads running until done
+	private volatile boolean dontStop= true;
+	private int getDownloaded(){
+		return this.downloaded;
+	}
+	private int getLeft(){
+		return this.left;
+	}
+	private TorrentInfo getTorrInfo(){
+		return this.tInfo;
+	}
 
-
-
+	/**
+	 * update the downloaded field of client
+	 * @param int Downloaded
+	 * 
+	 */
+synchronized void addDownloaded(int down){
+	System.out.println("Client has downloaded:"+ this.downloaded+down);
+	this.downloaded+=down;
+}
 
 
 
    public RUBTClient(TorrentInfo info, String WriteFile){
 
        this.tInfo= info;
-       this.writeFile= WriteFile;
-   
-
-  
-
-
+       this.writeFileName= WriteFile;
+       this.fileLength= info.file_length;
+       try {
+		this.tracker= new Tracker(this.clientId,this.tInfo.info_hash.array(),
+				   this.tInfo.announce_url.toString(),this.port,info);
+	} catch (UnsupportedEncodingException e) {
+		System.out.println("uh oh unsupported encoding!");
+	}
+       this.downloaded=0;
+       this.uploaded=0;
+       this.left=this.fileLength;
+       this.totalPieces=this.tInfo.piece_hashes.length;
+       this.pieceLength=this.tInfo.piece_length;
 
    }
+   public void run(){
+	try{
+		this.writeFile= new RandomAccessFile(this.writeFileName,"rw");
+		
+		if(this.writeFile.length()!=this.fileLength){
+			this.writeFile.setLength(this.fileLength);
+		}
+		peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
+		System.out.println("got peer:"+peer.peerID.toString());
+		peer.start();
+	}catch (final FileNotFoundException fnfe) {
+		
+		System.out.println("Unable to open output file for writing!");
+		// Exit right now, since nothing else was started yet
+		return;
+	}catch (IOException ioe) {
+		
+		System.out.println("I/O exception encountered when accessing output file!");
+				
+			
+		// Exit right now, since nothing else was started yet
+		return;
+	}
+	catch (Exception e) {
+		System.out.println("Error creating/connecting to the tracker!");
+		System.exit(1);
+	}
 
-
+}
+private static byte[] generateMyPeerId() {
+final byte[] peerId = new byte[20];
+// Hard code the first four bytes for easy identification
+System.arraycopy(First_Bytes, 0, peerId, 0,
+First_Bytes.length);
+// Randomly generate remaining 16 bytes
+final byte[] random = new byte[16];
+new Random().nextBytes(random);
+System.arraycopy(random, 0, peerId, 4, random.length);
+return peerId;
+}
 
 
   
