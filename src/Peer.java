@@ -1,3 +1,5 @@
+
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -6,6 +8,11 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 
 import GivenTools.ToolKit;
+import Messages.Message;
+import Messages.Message.Message_Bitfield;
+import Messages.Message.Message_Have;
+import Messages.Message.PieceMessage;
+
 
 
 
@@ -37,13 +44,35 @@ public class Peer extends Thread {
 	 //socket connecting the client to peer
 	 private Socket socket;
 	 //track pieces that the client will want to download
-	 private  byte [] bitfield;
+	 private  byte [] bitfield= null;
 	  // Total number of pieces in the torrent. 
 	  private int numPieces;
 	 //the piece that client is currently  requesting from peer
-	 private volatile Message.PieceMessage reqPiece=null;
+	 private volatile PieceMessage reqPiece=null;
 	 //to keep track if peer has already validated handshake
 	 private volatile boolean hasPerformedHandShake= false;
+	 //if client is interested=true
+	 private volatile boolean localInterested = false;
+
+	  /**
+	   * {@code True} if the remote peer is interested in this client.
+	   */
+	  private volatile boolean remoteInterested = false;
+
+	  /**
+	   * {@code True} if this client is choked by the remote peer.
+	   */
+	  private volatile boolean localChoked = true;
+
+	  /**
+	   * {@code True} if the remote peer is choked by this client.
+	   */
+	  private volatile boolean remoteChoked = true;
+
+	  /**
+	   * {@code True} if the remote peer has all pieces of the torrent.
+	   */
+	  private boolean isSeed = false;
 	
 	public Peer(final byte[] peerID, final String ip, final int port, 
 			final byte[] info_hash, final byte[] clientID){
@@ -200,6 +229,11 @@ public class Peer extends Thread {
 			//read response
 			System.out.println("reading instream");
 			Message m = Message.read(this.inStream);
+			handleMessage(m);
+			if(this.bitfield==null){
+				System.out.println("bitfield= null");
+			}
+			
 			if(m==null){
 				System.out.println("Message is null");
 			}
@@ -221,11 +255,48 @@ public class Peer extends Thread {
 		byte MID= m.getMessageId();
 		switch(MID){
 		case Message.M_Have:
+			Message_Have mes =  (Message_Have)m;
+			this.bitfield[mes.getPieceIndex()]=1;
+			System.out.println("peer has piece at index:"+ mes.getPieceIndex());
+			break;
+		case Message.M_Interested:
+			this.remoteInterested= true;
+			System.out.println("peer:" + this.toString()+"is interested");
+			break;
+		case Message.M_Uninterested:
+			this.remoteInterested= false;
+			System.out.println("peer:" + this.toString()+"is NOT interested");
+			break;
+		case Message.M_Piece:
+			PieceMessage pM= (PieceMessage) m;
+			//means peer sent the piece without the client requesting it
+			if(this.reqPiece== null){
+				System.out.println("Client did not request this data!");
+				break;
+			}
+			//make sure the piece is the one the client requested
+			if(this.reqPiece.getPieceIndex()== pM.getPieceIndex()){
+				//check to make sure block isnt too large
+				if(pM.getOffset() + pM.getBlockData().length >this.reqPiece.getBlockData().length){
+					System.out.println("the block of data sent was too large!");
+				this.reqPiece= null;//reset req piece
+				break;
+				}
+			System.arraycopy(pM.getBlockData(),0,this.reqPiece.getBlockData(), pM.getOffset(), pM.getBlockData().length);
 			
-			
-		
+			}break;
+		case Message.M_Bitfield:
+			System.out.println("bitfieldMessage");
+			Message_Bitfield bitMes= (Message_Bitfield)m;
+			int check= bitMes.getBitfield().length-this.numPieces;
+			this.bitfield=bitMes.getBitfield();
+			break;
 		}
 		
+		//return true;//returns true if all goes well
+	}
+	public byte[] getBitField(){
+		return this.bitfield;
 	}
 	
 	

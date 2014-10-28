@@ -1,4 +1,6 @@
 
+
+
 import java.io.*;
 import java.net.*;
 import java.util.Random;
@@ -174,9 +176,20 @@ synchronized void addDownloaded(int down){
 		if(this.writeFile.length()!=this.fileLength){
 			this.writeFile.setLength(this.fileLength);
 		}
-		peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
+		//try this.peer? need to see what the problem is
+		this.peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
 		System.out.println("got peer:"+peer.peerID.toString());
-		peer.start();
+		this.peer.start();
+		while(this.peer.getBitField()== null){
+			System.out.println("asking for bitfield too soon,waiting");
+		}
+		boolean seed= isPeerSeed(this.peer.getBitField());
+		if(!seed){
+			System.out.println("not a seed? how!");
+		}
+		else{
+			System.out.println("its a seed!!!");
+		}
 	}catch (final FileNotFoundException fnfe) {
 		
 		System.out.println("Unable to open output file for writing!");
@@ -195,6 +208,16 @@ synchronized void addDownloaded(int down){
 		System.exit(1);
 	}
 
+}
+public boolean isPeerSeed(byte[] bitField){
+	System.out.println("inside is peerseed");
+	for(int i=0; i<this.totalPieces;i++){
+		System.out.println("index"+i+":"+bitField[i]);
+		/*if(bitField[i]!=1){
+			return false;
+		}*/
+	}
+	return true;
 }
 private static byte[] generateMyPeerId() {
 final byte[] peerId = new byte[20];

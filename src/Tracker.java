@@ -1,3 +1,5 @@
+
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -61,36 +63,11 @@ public class Tracker {
  private final static char[] HEX_CHARS = { '0', '1', '2', '3', '4', '5',
  	'6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
  
- /*
-  * Method: creates a new URL to pass to tracker
-  * @param bytesDown
-  * @param bytesUp
-  * @param bytesleft
-  * @return requested URL
-  */
-/* public URL createURL(int bytesDown, int bytesUp, int bytesLeft) {
-	 String urlString = (AnnounceUrl+"?"
-	        +"info_hash="+info_Hash_url
-	        +"&"+"peer_id="+peer_id+"&"
-	        +"port="+port+"&"
-	        +"uploaded="+bytesUp+"&"
-	        +"downloaded="+bytesDown+"&"
-	        +"left="+bytesLeft);
-	 try {
-         url = new URL(urlString);
-         
-     } catch (MalformedURLException e1) {
-    	 System.out.println("Error creating the URL!");
-    	 return null;
-     } 
-	 return url;
- }//end createURL
- */
- 
+
  
  /*
-  * Method: Generates a connection to the tracker
-  * @return trkMap of the tracker's response
+  * Method: Generates a connection to the tracker and reads in its response 
+  * @return Map of the tracker's response
   * 
   */
  	@SuppressWarnings("unchecked")
@@ -158,62 +135,9 @@ public class Tracker {
           String iHash = bytesToURL(info_hash);
           this.info_Hash_url=iHash;
           this.port= port;
-          //this.uploaded= 0;
-         // this.downloaded= 0;
-         // this.left=t.file_length;
-          
-         // byte[] shake;
-        //  Peer p;
-          
-          //connect to tracker
-         /* try{	  
-        	  Map<ByteBuffer,Object> c = this.connect(this.downloaded, this.uploaded, this.left, null);
-        	  //retrieve interval and set global var
-        	  int trackerInterval = (Integer)c.get(Key_Interval);
-        	  interval = trackerInterval;
-        	  System.out.println("trackerInterval: " + trackerInterval);
-   	
-   	
-        	  //Decode tracker Map response to String[] 
-        	  System.out.println("Decoding response");
-        	  //    ToolKit.print(getPeers(c));
-        	  
-        	  //get list of peers
-        	  getPeers(c);
-        	  
-        	  //find correct peer with RUBT prefix in ID
-        	  p = findPeerWithPrefix();
-        	  
-        	  if(p==null){
-        		  System.out.println("Peer not found!");
-        	  }
-        	  
-        	  //open TCP socket and connect to peer
-        	  p.start();
-        	  
-        	  //create handshake message
-        	 // p.createHandshake(p.peerID, p.info_hash);
-        	  
-        	  //send handshake
-        	// Boolean check= p.verifyHandshake(p.info_hash);
-        	
-        	  
-        	 
-        	  
-       
-
-          }catch(Exception e){
-        	  System.out.println("Error connecting to tracker!");
-        	  System.exit(1);
-          }
-          */
-      //    System.out.println("Connection to tracker success!");
+        
     }
     
-    
-    
-  
-
     public Peer announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event){
     	 LinkedList<Peer> peersList;
     	String urlString = (AnnounceUrl+"?"

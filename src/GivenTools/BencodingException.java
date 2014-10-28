@@ -1,4 +1,3 @@
-package GivenTools;
 /*
  *  RUBTClient is a BitTorrent client written at Rutgers University for 
  *  instructional use.
@@ -18,6 +17,7 @@ package GivenTools;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+package GivenTools;
 
 /**
  * @author Robert Moore II
