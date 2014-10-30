@@ -1,10 +1,13 @@
 
 
-
 import java.io.*;
 import java.net.*;
 import java.util.Random;
 
+import customTools.utils;
+import Client.Tracker;
+import Client.Peer;
+import Messages.Message;
 import GivenTools.*;
 
 /**
@@ -34,9 +37,7 @@ public class RUBTClient extends Thread{
      */
 	   
     public static void main(String[] args) {
-        // java -cp . RUBTClient somefile.torrent picture.jpeg
-        //args[0]="http://128.6.5.130:6969/announce";
-        //args[1]="6969";
+       
         if(args[0] == null | args[1] == null){
             System.out.println("Incorrect # of args!");
             System.exit(1);
@@ -101,15 +102,12 @@ public class RUBTClient extends Thread{
     public final TorrentInfo tInfo;// torrentinfo object
   
     private final String writeFileName; // name of desired file
-	private final byte[] clientId= generateMyPeerId();
+	private final byte[] clientId= utils.generateMyPeerId();
 	private Peer peer;
     private RandomAccessFile writeFile;//actual file
     private int fileLength;//length of write file
     public String event; //event passed from tracker
 	private int port= 6881;
-	//hard code first 4 bytes of client PID
-	static final byte[] First_Bytes = { 'R', 'C', 'D', 'T' };
-	
 	//clients bitfield
 	private byte[] bitfield;
 	
@@ -177,19 +175,10 @@ synchronized void addDownloaded(int down){
 			this.writeFile.setLength(this.fileLength);
 		}
 		//try this.peer? need to see what the problem is
-		this.peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
-		System.out.println("got peer:"+peer.peerID.toString());
-		this.peer.start();
-		while(this.peer.getBitField()== null){
-			System.out.println("asking for bitfield too soon,waiting");
-		}
-		boolean seed= isPeerSeed(this.peer.getBitField());
-		if(!seed){
-			System.out.println("not a seed? how!");
-		}
-		else{
-			System.out.println("its a seed!!!");
-		}
+		peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
+		System.out.println("got peer:"+peer.getPeerId().toString());
+		peer.start();
+		
 	}catch (final FileNotFoundException fnfe) {
 		
 		System.out.println("Unable to open output file for writing!");
@@ -209,27 +198,7 @@ synchronized void addDownloaded(int down){
 	}
 
 }
-public boolean isPeerSeed(byte[] bitField){
-	System.out.println("inside is peerseed");
-	for(int i=0; i<this.totalPieces;i++){
-		System.out.println("index"+i+":"+bitField[i]);
-		/*if(bitField[i]!=1){
-			return false;
-		}*/
-	}
-	return true;
-}
-private static byte[] generateMyPeerId() {
-final byte[] peerId = new byte[20];
-// Hard code the first four bytes for easy identification
-System.arraycopy(First_Bytes, 0, peerId, 0,
-First_Bytes.length);
-// Randomly generate remaining 16 bytes
-final byte[] random = new byte[16];
-new Random().nextBytes(random);
-System.arraycopy(random, 0, peerId, 4, random.length);
-return peerId;
-}
+
 
 
   
