@@ -96,7 +96,7 @@ public class utils {
 	    	}
 	    	return null;
 	    }
-	    /**
+	    /*
 	     * takes the bitfield and iterates through determining the boolean representation
 	     * for each piece, useful for determining if a peer is desirable and if peer is seed
 	     * @param bitfield
@@ -123,4 +123,8 @@ public class utils {
 		   	}
 		   return bool;
 	  }
+	 public static String printPeer(Peer p){
+		 String ret="peerid:"+p.getPeerId().toString()+"\n"+"peer ip:"+p.getIP();
+		 return ret;
+	 }
 }

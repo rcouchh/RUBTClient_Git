@@ -205,7 +205,6 @@ public class Tracker {
     			peer_port = (Integer)peerMap.get(Key_Port);
     		}
         	final Peer peer = new Peer(peer_ID, peer_IP, peer_port, info_hash, clientID,totalPieces);
-        	//peerList.add(peer);
         	peers.add(peer);
     	}
     	utils.printPeers(peers);

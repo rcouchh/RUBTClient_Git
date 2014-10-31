@@ -10,6 +10,7 @@ import customTools.utils;
 import Messages.Message;
 import Messages.Message.Message_Bitfield;
 import Messages.Message.Message_Have;
+import Messages.Message.Message_Request;
 import Messages.Message.PieceMessage;
 
 
@@ -253,7 +254,9 @@ public class Peer extends Thread {
 			}
 			
 			m=Message.read(this.inStream);
-			handleMessage(m);
+			Message_Request mr= new Message_Request(0,0,16384);
+			Message.write(this.outStream, mr);
+			m=Message.read(this.inStream);
 			
 			disconnect();
 		} catch (Exception e) {

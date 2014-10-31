@@ -175,8 +175,9 @@ synchronized void addDownloaded(int down){
 			this.writeFile.setLength(this.fileLength);
 		}
 		//try this.peer? need to see what the problem is
+		System.out.println("length of file:"+tInfo.file_length);
 		peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
-		System.out.println("got peer:"+peer.getPeerId().toString());
+		System.out.println("got peer:"+utils.printPeer(peer));
 		peer.start();
 		
 	}catch (final FileNotFoundException fnfe) {

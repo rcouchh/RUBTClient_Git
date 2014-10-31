@@ -42,7 +42,9 @@ public class Message {
 		this.length= length;
 		this.MessageID= M_ID;
 	}
-	
+	public int getLength(){
+		return this.length;
+	}
 	public byte getMessageId() {
 		return this.MessageID;
 	}
@@ -58,10 +60,7 @@ public class Message {
 	 * @throws IOException
 	 */
 	public static Message read(DataInputStream readMe) throws IOException{
-		//DataInputStream readMe = new DataInputStream(inputStream);
-		//if(readMe!=null){
-		//	System.out.println(readMe.read());
-	//	}
+		
 		System.out.println("reading int1...");
 		final int length = readMe.readInt();
 		System.out.println("Length = "+length);
@@ -161,12 +160,6 @@ public class Message {
 			}catch(NullPointerException npe){
 			    throw new IOException("Cannot write to a null stream.");
 			  }
-			//outStream.writeByte(this.MessageID);
-			// Write payload for Have, Bitfield, Request, Piece, Cancel
-			// messages
-			//this.writePayload(outStream);
-		
-
 		
 	}
 	public static class Message_Have extends Message{
