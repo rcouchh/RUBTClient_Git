@@ -2,6 +2,8 @@ package Client;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -14,20 +16,15 @@ import Messages.Message.Message_Request;
 import Messages.Message.PieceMessage;
 
 
-
-
-
-
-
 public class Peer extends Thread {
 	//duration client should wait to hear from  peer
 	public static final int WAIT_FOR_MESS= 130;
 	//max num of piece messages for queue
 	public static final int MAX_PIECES_QUEUE= 20;
 	//inputstream from the peer
-	private DataInputStream inStream= null;
+	private InputStream inStream= null;
 	//outputstream to the pear
-	private DataOutputStream outStream= null;
+	private OutputStream outStream= null;
 	//starting piece of Bit torrent handshake protocol
 	private static final byte[] Protocol = {'B', 'i', 't', 'T', 'o',
 		'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o',
@@ -121,8 +118,8 @@ public class Peer extends Thread {
 			System.out.println("Socket created!");
 			//createHandShake(this.peerID,this.info_hash);
 		}
-		this.inStream = new DataInputStream(this.socket.getInputStream());
-		this.outStream = new DataOutputStream(this.socket.getOutputStream());
+		this.inStream = this.socket.getInputStream();
+		this.outStream = this.socket.getOutputStream();
 	}
 	
 	
@@ -220,7 +217,7 @@ public class Peer extends Thread {
 				//initiatePeerInteraction();
 			}
 			
-			System.out.println("Available: "+this.inStream.available());
+			//System.out.println("Available: "+this.inStream.available());
 			
 			//send interested message
 			
@@ -257,14 +254,11 @@ public class Peer extends Thread {
 			Message_Request mr= new Message_Request(0,0,16384);
 			Message.write(this.outStream, mr);
 			m=Message.read(this.inStream);
-			
 			disconnect();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			System.out.println("Error: "+e.getMessage());
 		}
-		
-		
 		
 	}
 

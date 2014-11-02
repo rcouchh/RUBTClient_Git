@@ -110,9 +110,7 @@ public class utils {
 		   for (int currByte=0; currByte< bitfield.length; currByte++){
 			   //iterate through individual bits within each cell of byte array bytes are big-endian go right to left
 			   for(int currBit=7; currBit>=0; currBit--){
-				   if(currBool == numBits-1){
-					   return bool;
-				   }
+				  
 				  if((bitfield[currByte] >> currBit & 0x01)==1){
 					  bool[currBool]= true;
 				  }else{
@@ -124,7 +122,7 @@ public class utils {
 		   return bool;
 	  }
 	 public static String printPeer(Peer p){
-		 String ret="peerid:"+p.getPeerId().toString()+"\n"+"peer ip:"+p.getIP();
+		 String ret="peerid:"+(String)p.getPeerId().toString()+"\n"+"peer ip:"+p.getIP();
 		 return ret;
 	 }
 }

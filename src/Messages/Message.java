@@ -59,8 +59,8 @@ public class Message {
 	 * @return message on the stream, waiting until message arrives
 	 * @throws IOException
 	 */
-	public static Message read(DataInputStream readMe) throws IOException{
-		
+	public static Message read(InputStream is) throws IOException{
+		DataInputStream readMe= new DataInputStream(is);
 		System.out.println("reading int1...");
 		final int length = readMe.readInt();
 		System.out.println("Length = "+length);
@@ -121,11 +121,14 @@ public class Message {
 		return null;
 	}
 	
-	public static void write(final DataOutputStream outStream, Message msg) throws IOException {
+	public static void write(final OutputStream os, Message msg) throws IOException {
+		DataOutputStream outStream = new DataOutputStream(os);
+		System.out.println("writing length to stream: "+ msg.length);
 		outStream.writeInt(msg.length);
 			try{
 		if (msg.length > 0) {
-			outStream.writeInt(msg.MessageID);
+			System.out.println("writing ID to stream: "+ msg.MessageID);
+			outStream.writeByte(msg.MessageID);
 			switch(msg.MessageID){
 			case M_Bitfield:{
 				Message_Bitfield message= (Message_Bitfield) msg;
@@ -169,9 +172,6 @@ public class Message {
 			super(4,M_Have);
 			this.Index=PieceIndex;
 		}
-		public void sendPayLoad(DataOutputStream os ) throws IOException{
-			os.writeInt(this.Index);
-		}
 		public int getPieceIndex(){
 			return this.Index;
 		}
@@ -187,11 +187,6 @@ public class Message {
 			this.offset=offset;
 			this.length=length;
 		}
-		public void setPayload(final DataOutputStream os) throws IOException {
-			os.writeInt(this.pieceIndex);
-			os.writeInt(this.offset);
-			os.writeInt(this.length);
-		}
 
 	}
 	public static class PieceMessage extends Message{
@@ -204,11 +199,6 @@ public class Message {
 				this.pieceIndex=pieceIndex;
 				this.offset=offset;
 				this.block=b;
-		}
-		public void setPayload(final DataOutputStream os) throws IOException {
-			os.writeInt(this.pieceIndex);
-			os.writeInt(this.offset);
-			os.write(this.block);
 		}
 		public int getPieceIndex(){
 			return this.pieceIndex;
@@ -228,10 +218,7 @@ public class Message {
 				this.bitfield=bitfield;
 				this.bool= utils.bitsToBool(bitfield);
 		}
-		
-		public void setPayload(final DataOutputStream os) throws IOException {
-			os.write(this.bitfield);
-		}
+	
 		public byte[] getBitfield(){
 			return this.bitfield;
 		}

@@ -176,6 +176,7 @@ synchronized void addDownloaded(int down){
 		}
 		//try this.peer? need to see what the problem is
 		System.out.println("length of file:"+tInfo.file_length);
+		System.out.println("number of pieces:"+ tInfo.piece_hashes.length);
 		peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
 		System.out.println("got peer:"+utils.printPeer(peer));
 		peer.start();
