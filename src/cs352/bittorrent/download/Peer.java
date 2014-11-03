@@ -8,20 +8,34 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import cs352.bittorrent.customTools.utils;
+import cs352.bittorrent.main.RUBTClient;
 import cs352.bittorrent.messages.Message;
+import cs352.bittorrent.messages.peerMessage;
 import cs352.bittorrent.messages.Message.Message_Bitfield;
 import cs352.bittorrent.messages.Message.Message_Have;
 import cs352.bittorrent.messages.Message.Message_Request;
 import cs352.bittorrent.messages.Message.PieceMessage;
-
+/**
+ * 
+ * @author Dan Torres,Ryan Couch
+ * 
+ *
+ */
 
 public class Peer extends Thread {
-	//duration client should wait to hear from  peer
-	public static final int WAIT_FOR_MESS= 130;
-	//max num of piece messages for queue
-	public static final int MAX_PIECES_QUEUE= 20;
+	// Set up timer 
+	//keepAlive timeout
+	private static final long KEEP_ALIVE_TIMEOUT = 120000;
+	//keepalive timer
+	private final Timer keepAliveInterval = new Timer();
+	//last time message was sent
+	private long lastMessageSent = System.currentTimeMillis();
 	//inputstream from the peer
 	private InputStream inStream= null;
 	//outputstream to the pear
@@ -31,6 +45,7 @@ public class Peer extends Thread {
 		'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o',
 		'l' };
 	private static ByteBuffer[] pieceHash;
+	private LinkedBlockingQueue<peerMessage> toDo = new LinkedBlockingQueue<peerMessage>();
 	//peers ip address
 	 final String ip;
 	//peers port number
@@ -55,20 +70,18 @@ public class Peer extends Thread {
 	 private volatile boolean hasPerformedHandShake= false;
 	 //if client is interested=true
 	 private volatile boolean localInterested = false;
+	//if peer is interested
+	  private volatile boolean remoteInterested = false;
 	 //check if peer is seed
 	 private boolean isSeed= false;
-	 //check if local peer is choked
+	 //check if client is choked
 	 private boolean localChoked =false;
-	  /**
-	   * {@code True} if the remote peer is interested in this client.
-	   */
-	  private volatile boolean remoteInterested = false;
-
-	  /**
-	   * {@code True} if the remote peer is choked by this client.
-	   */
-	  private volatile boolean remoteChoked = true;
-	 // private static RUBTClient client;
+	 //check for peer is choked
+	 private volatile boolean remoteChoked = true;
+	 //the client this peer is interacting with
+	private static RUBTClient client;
+	//keep peer running
+	private boolean cantStopWontStop= true;
 	
 	public Peer(final byte[] peerID, final String ip, final int port, 
 			final byte[] info_hash, final byte[] clientID, final int numPieces){
@@ -93,11 +106,41 @@ public class Peer extends Thread {
 	public void setPieceHash(ByteBuffer [] b){
 		this.pieceHash=b;
 	}
-	//public void setClient(RUBTClient c){
-	//	this.client= c;
-	//}
+	public void setClient(RUBTClient c){
+	 this.client= c;
+	}
+	public void addToDo(peerMessage m){
+		this.client.addToDo(m);
+	}
+	public void setLocalChoked(boolean set){
+		this.localChoked=set;
+	}
+	public boolean isLocalChoke(){
+		return this.localChoked;
+	}
+	public void setRemoteChoked(boolean set){
+		this.remoteChoked=set;
+	}
+	public boolean isRemoteChoke(){
+		return this.remoteChoked;
+	}
+	public void setRemoteInterested(boolean set){
+		this.remoteInterested=set;
+	}
+	public boolean isRemoteInterested(){
+		return this.remoteInterested;
+	}
+	public void setLocalInterested(boolean set){
+		this.localInterested= set;
+	}
+	public boolean isLocalInterested(){
+		return this.localInterested;
+	}
+	public void setToDo(LinkedBlockingQueue<peerMessage> toDo){
+		this.toDo=toDo;
+	}
 	//destroys each socket/stream
-	void disconnect() throws IOException {
+	public void disconnect() throws IOException {
 		this.socket.close();
 		this.inStream.close();
 		this.outStream.close();
@@ -128,7 +171,7 @@ public class Peer extends Thread {
 	}
 	
 	
-	public void createHandShake(byte[] peerID, byte[] info_hash) throws IOException{
+	public void initiateHandShake(byte[] peerID, byte[] info_hash) throws IOException{
 		System.out.println("Generating handshake...");
 		
 		//allocate bytes for handshake
@@ -212,56 +255,63 @@ public class Peer extends Thread {
 		}
 		return true;
 	}
-	
+	public synchronized void writeMessage(Message m) throws IOException{
+		if(this.outStream== null){
+			throw new IOException("Output stream is null!");
+		}
+		Message.write(this.outStream, m);
+		this.lastMessageSent=System.currentTimeMillis();
+	}
+	//checks to see when last message was sent and determines if a keep alive is needed to be sent
+	protected void SendKeepAlive() throws Exception {
+		final long now = System.currentTimeMillis();
+		if ((now - this.lastMessageSent) > Peer.KEEP_ALIVE_TIMEOUT) {
+			this.writeMessage(Message.keepAlive);
+			// Validate that the timestamp was updated
+			if (now > this.lastMessageSent) {
+				throw new Exception(
+						"Didn't update lastMessageTime when sending a keep-alive!");
+			}
+		}
+	}
+	int attempt=0;
 	public void run(){
 		try {
-			connect();
-			createHandShake(peerID,info_hash);
-			boolean verify=verifyHandShake(this.info_hash);
-			if(verify==true){
-				//initiatePeerInteraction();
-			}
-			
-			//System.out.println("Available: "+this.inStream.available());
-			
-			//send interested message
-			
-		
-			
-			
-			//read response
-			System.out.println("reading instream");
-			Message m = Message.read(this.inStream);
-			handleMessage(m);
-			if(this.isSeed== false){
-				System.out.println("this is not a seed!");
-			}
-			if(this.isSeed== true){
-				System.out.println("this is a seed!");
-				Message.write(this.outStream, Message.Interested);
-				System.out.println("Interested message sent!");
-				if(this.inStream==null){
-					System.out.println("instream null (peer)");
+			this.connect();
+			this.keepAliveInterval.scheduleAtFixedRate(new TimerTask() {
+				@Override
+				public void run() {
+					// Let the peer keep track of sending keepalive
+					try {
+						Peer.this.SendKeepAlive();
+					} catch (final Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+
+			}, new Date(), 10000);
+			//intitiating handshake
+			initiateHandShake(peerID,info_hash);
+			//boolean verify=verifyHandShake(this.info_hash);
+			if(!verifyHandShake(this.info_hash)){
+				System.out.println("incorrect protocol of peers handshake");
+				this.disconnect();
+				if(attempt<2){//retry connect to peer 3 times
+					this.attempt++;
+					this.connect();
 				}
 			}
-			if(this.bitfield==null){
-				System.out.println("bitfield= null");
+			else{
+				this.writeMessage(new Message.Message_Bitfield(this.client.getBitfield()));
+				while(this.cantStopWontStop){
+						Message m=Message.read(this.inStream);
+						//this.handleMessage(m);
+						this.toDo.put(new peerMessage(this,m));
+						//this.client.Handle(new peerMessage(this,m));
+						
+				}
 			}
-			
-			if(m==null){
-				System.out.println("Message is null");
-			}
-			if(inStream==null){
-				System.out.println("InStream is null");
-			}
-			
-			m=Message.read(this.inStream);
-			Message_Request mr= new Message_Request(0,0,16384);
-			Message.write(this.outStream, mr);
-			m=Message.read(this.inStream);
-			boolean check=handleMessage(m);
-			
-			disconnect();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			System.out.println("Error: "+e.getMessage());
@@ -272,19 +322,6 @@ public class Peer extends Thread {
 public boolean handleMessage(Message m){
 		byte MID= m.getMessageId();
 		switch(MID){
-		case Message.M_Have:
-			Message_Have mes =  (Message_Have)m;
-			this.bitfield[mes.getPieceIndex()]=1;
-			System.out.println("peer has piece at index:"+ mes.getPieceIndex());
-			break;
-		case Message.M_Interested:
-			this.remoteInterested= true;
-			System.out.println("peer:" + this.toString()+"is interested");
-			break;
-		case Message.M_Uninterested:
-			this.remoteInterested= false;
-			System.out.println("peer:" + this.toString()+"is NOT interested");
-			break;
 		case Message.M_Piece:
 			PieceMessage pM= (PieceMessage) m;
 			//means peer sent the piece without the client requesting it
@@ -303,25 +340,9 @@ public boolean handleMessage(Message m){
 			System.arraycopy(pM.getBlockData(),0,this.reqPiece.getBlockData(), pM.getOffset(), pM.getBlockData().length);
 			
 			}break;
-		case Message.M_Bitfield:
-			System.out.println("bitfieldMessage");
-			Message_Bitfield bitMes= (Message_Bitfield)m;
-			this.bitfield=bitMes.getBitfield();
-			this.bitfieldBool=utils.bitsToBool(this.bitfield);
-			int check= bitMes.getBool().length-numPieces;
-			System.out.println("difference:"+check);
-			if(check <0 || check>=8){
-				System.out.println("payload is not correct number of pieces as specified by torrent file!");
-				this.bitfield=null;
-				this.bitfieldBool=null;
-				return false;
-			}
-			isSeed();
-			break;
-		case Message.M_Unchoke:
-			System.out.println("peer sent unchoke message now request pieces");
-		case Message.M_Choke:
-			System.out.println("peer sent choke message");
+		default:
+			peerMessage add= new peerMessage(this,m);
+			this.client.addToDo(add);
 		}
 		
 		return true;//returns true if all goes well
@@ -348,5 +369,54 @@ public boolean handleMessage(Message m){
 		}
 		
 	}
-	
+	//initializes a peers bitfield with given total pieces from metafile
+	public void initializePeerBitfield(final int totalPieces) {
+		final int bytes = (int) Math.ceil((double) totalPieces / 8);
+		final byte[] tempBitfield = new byte[bytes];
+
+		this.setPeerBitfield(tempBitfield);
+	}
+	public synchronized void setPeerBitfield(byte[]bits){
+		this.bitfield=bits;
+		this.bitfieldBool=utils.bitsToBool(bits);
+	}
+	public void setPeerBitAtIndex(int pieceIndex) throws IOException{
+		byte[] temp= this.getBitField();
+		temp=utils.setBitfieldAt(temp,pieceIndex);
+		this.setPeerBitfield(temp);
+	}
+	public void resetPeerBitAtIndex(int pieceIndex)throws IOException{
+		byte[] temp= this.getBitField();
+		temp=utils.setBitfieldAt(temp,pieceIndex);
+		this.setPeerBitfield(temp);
+	}
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Peer)) {
+			return false;
+		}
+		final Peer other = (Peer) obj;
+		if (!Arrays.equals(this.peerID, other.peerID)) {
+			return false;
+		}
+		if (this.ip == null) {
+			if (other.ip != null) {
+				return false;
+			}
+		} else if (!this.ip.equals(other.ip)) {
+			return false;
+		}
+		return true;
+	}
 }

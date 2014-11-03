@@ -1,10 +1,17 @@
 package cs352.bittorrent.customTools;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.Random;
 
 import cs352.bittorrent.download.Peer;
-
+/**
+ * 
+ * @author Dan Torres,Ryan Couch
+ * 
+ *
+ */
 public class utils {
 	//hard code first 4 bytes of client PID
 	private static final byte[] First_Bytes = { 'R', 'C', 'D', 'T' };
@@ -121,7 +128,14 @@ public class utils {
 			   	}
 		   	}
 		   return bool;
-	  }
+	   }
+	   //returns byte representation of file
+	   public static byte[] fileToBytes(final RandomAccessFile file)
+				throws IOException {
+			final byte[] ret = new byte[(int) file.length()];
+			file.readFully(ret);
+			return ret;
+		}
 	 public static String printPeer(Peer p){
 		 String ret="peerid:"+(String)p.getPeerId().toString()+"\n"+"peer ip:"+p.getIP();
 		 return ret;

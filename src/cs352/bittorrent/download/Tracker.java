@@ -26,7 +26,12 @@ http://some.tracker.com:999/announce
 &left=98765
 &event=stopped
 */
-
+/**
+ * 
+ * @author Dan Torres,Ryan Couch
+ * 
+ *
+ */
 
 public class Tracker {
     private String AnnounceUrl;
@@ -126,7 +131,9 @@ public class Tracker {
           this.port= port;
           this.totalPieces=t.piece_hashes.length;
     }
-    
+    public int getInterval(){
+    	return this.interval;
+    }
     public LinkedList<Peer> announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event){
     	 LinkedList<Peer> peersList = null;
     	String urlString = (AnnounceUrl+"?"

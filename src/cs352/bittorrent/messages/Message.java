@@ -2,7 +2,12 @@ package cs352.bittorrent.messages;
 import java.io.*;
 
 import cs352.bittorrent.customTools.utils;
-
+/**
+ * 
+ * @author Dan Torres,Ryan Couch
+ * 
+ *
+ */
 public class Message {
 	
 	
@@ -186,6 +191,15 @@ public class Message {
 			this.pieceIndex=index;
 			this.offset=offset;
 			this.length=length;
+		}
+		public int getIndex(){
+			return this.pieceIndex;
+		}
+		public int getOffset(){
+			return this.offset;
+		}
+		public int getBlockLength(){
+			return this.length;
 		}
 
 	}
