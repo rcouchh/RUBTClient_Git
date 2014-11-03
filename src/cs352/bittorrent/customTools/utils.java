@@ -1,9 +1,9 @@
-package customTools;
+package cs352.bittorrent.customTools;
 
 import java.util.LinkedList;
 import java.util.Random;
 
-import Client.Peer;
+import cs352.bittorrent.download.Peer;
 
 public class utils {
 	//hard code first 4 bytes of client PID

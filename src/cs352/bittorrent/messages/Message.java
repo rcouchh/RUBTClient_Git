@@ -1,7 +1,7 @@
-package Messages;
+package cs352.bittorrent.messages;
 import java.io.*;
 
-import customTools.utils;
+import cs352.bittorrent.customTools.utils;
 
 public class Message {
 	

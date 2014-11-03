@@ -1,9 +1,5 @@
 
-
-
-
-
-
+package cs352.bittorrent.main;
 import java.io.*;
 import java.net.*;
 import java.security.MessageDigest;
@@ -14,11 +10,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import customTools.utils;
-import Messages.Message;
-import Client.Peer;
-import Client.Tracker;
-import GivenTools.*;
+import cs352.bittorrent.customTools.*;
+import cs352.bittorrent.messages.Message;
+import cs352.bittorrent.download.Peer;
+import cs352.bittorrent.download.Tracker;
+import cs352.bittorrent.givenTools.*;
 
 /**
  *
@@ -297,20 +293,24 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 }
 private void addPeers(LinkedList<Peer> add){
 	if(this.peers == null){
+		System.out.println("peerslist is null");
+		this.peers= new LinkedList<Peer>();
 		for(Peer newGuy: add){
-			if(!newGuy.getIP().equals("128.6.171.130")){
+			if(!newGuy.getIP().equals("128.6.171.130")&& newGuy.getIP().equals("128.6.171.131")){
 				this.peers.add(newGuy);
 				newGuy.start();
 			}
 		}
+		return;
 	}
 	for(Peer newGuy :add){
-		if(!this.peers.contains(newGuy) && !newGuy.getIP().equals("128.6.171.130")){
+		if(!this.peers.contains(newGuy) && !newGuy.getIP().equals("128.6.171.130") && newGuy.getIP().equals("128.6.171.131")){
 			this.peers.add(newGuy);
 			System.out.println("REMEMBER TO REMOVE THE BLOCK ON .130 BEFORE SUBMITTING! -added peer:"+newGuy.getIP()+ " to list of peers");
 			newGuy.start();
 		}
 	}
+	return;
 }  
 
 

@@ -1,4 +1,4 @@
-package Client;
+package cs352.bittorrent.download;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -9,12 +9,12 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import customTools.utils;
-import Messages.Message;
-import Messages.Message.Message_Bitfield;
-import Messages.Message.Message_Have;
-import Messages.Message.Message_Request;
-import Messages.Message.PieceMessage;
+import cs352.bittorrent.customTools.utils;
+import cs352.bittorrent.messages.Message;
+import cs352.bittorrent.messages.Message.Message_Bitfield;
+import cs352.bittorrent.messages.Message.Message_Have;
+import cs352.bittorrent.messages.Message.Message_Request;
+import cs352.bittorrent.messages.Message.PieceMessage;
 
 
 public class Peer extends Thread {
@@ -59,7 +59,6 @@ public class Peer extends Thread {
 	 private boolean isSeed= false;
 	 //check if local peer is choked
 	 private boolean localChoked =false;
-	 
 	  /**
 	   * {@code True} if the remote peer is interested in this client.
 	   */
@@ -94,6 +93,9 @@ public class Peer extends Thread {
 	public void setPieceHash(ByteBuffer [] b){
 		this.pieceHash=b;
 	}
+	//public void setClient(RUBTClient c){
+	//	this.client= c;
+	//}
 	//destroys each socket/stream
 	void disconnect() throws IOException {
 		this.socket.close();

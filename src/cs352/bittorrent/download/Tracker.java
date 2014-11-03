@@ -1,4 +1,4 @@
-package Client;
+package cs352.bittorrent.download;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -13,8 +13,8 @@ import java.util.LinkedList;
 import java.util.Map;
 
 
-import customTools.utils;
-import GivenTools.*;
+import cs352.bittorrent.givenTools.*;
+import cs352.bittorrent.customTools.*;
 
 /*
 http://some.tracker.com:999/announce
@@ -151,8 +151,8 @@ public class Tracker {
 				System.out.println("trackerInterval: " + interval);
 				System.out.println("getting peerslist..");
 				peersList=getPeers(c);
-				LinkedList<Peer> temp= peersList;
-				peersList=utils.findPeersWithPrefix(temp);
+				//LinkedList<Peer> temp= peersList;
+				//peersList=utils.findPeersWithPrefix(temp);
 				if(peersList== null){
 					System.out.println("peerlist null!");
 				}
