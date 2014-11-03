@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import customTools.utils;
@@ -29,6 +30,7 @@ public class Peer extends Thread {
 	private static final byte[] Protocol = {'B', 'i', 't', 'T', 'o',
 		'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o',
 		'l' };
+	private static ByteBuffer[] pieceHash;
 	//peers ip address
 	 final String ip;
 	//peers port number
@@ -55,22 +57,19 @@ public class Peer extends Thread {
 	 private volatile boolean localInterested = false;
 	 //check if peer is seed
 	 private boolean isSeed= false;
-
+	 //check if local peer is choked
+	 private boolean localChoked =false;
+	 
 	  /**
 	   * {@code True} if the remote peer is interested in this client.
 	   */
 	  private volatile boolean remoteInterested = false;
 
 	  /**
-	   * {@code True} if this client is choked by the remote peer.
-	   */
-	  private volatile boolean localChoked = true;
-
-	  /**
 	   * {@code True} if the remote peer is choked by this client.
 	   */
 	  private volatile boolean remoteChoked = true;
-
+	 // private static RUBTClient client;
 	
 	public Peer(final byte[] peerID, final String ip, final int port, 
 			final byte[] info_hash, final byte[] clientID, final int numPieces){
@@ -90,6 +89,10 @@ public class Peer extends Thread {
 	}
 	public byte[] getPeerId(){
 		return this.peerID;
+	}
+	
+	public void setPieceHash(ByteBuffer [] b){
+		this.pieceHash=b;
 	}
 	//destroys each socket/stream
 	void disconnect() throws IOException {
@@ -254,6 +257,8 @@ public class Peer extends Thread {
 			Message_Request mr= new Message_Request(0,0,16384);
 			Message.write(this.outStream, mr);
 			m=Message.read(this.inStream);
+			boolean check=handleMessage(m);
+			
 			disconnect();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

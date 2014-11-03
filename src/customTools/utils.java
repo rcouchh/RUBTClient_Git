@@ -79,22 +79,23 @@ public class utils {
 	     * Method iterates through list of peers for phase2: entry with 128.6.171.130 and 128.6.171.131
 	   	 * @return peer with the correct Ip prefix
 	     */
-	    
-	    public static Peer findPeerWithPrefix(LinkedList<Peer> p){
+	    //  128.6.171.130 and 128.6.171.131
+	    public static LinkedList <Peer> findPeersWithPrefix(LinkedList<Peer> p){
 	    	System.out.println("Searching for peer!");
-	    	LinkedList<Peer> temp;
+	    	LinkedList<Peer> temp= new LinkedList<Peer>();
+	    	final LinkedList<Peer> ret = new LinkedList<Peer>();
 	    	for( temp= p; temp!=null; temp.pop()){
-	    		byte[] peerID =temp.peek().getPeerId();
-	    		String id = new String(peerID);
-	    		
-	    		//if ID has prefix 'RUBT' or '-AZ5400'
-	    		if(id.startsWith("RUBT") || id.startsWith("-AZ5400")){
-	    			System.out.println("Correct peer found!");
-	        		System.out.println("Peer ID: "+id);
-	    			return temp.peek();
+	    		//byte[]peerID =temp.peek().getPeerId();
+	    		String ip = temp.peek().getIP();
+	    				//if ID has prefix 'RUBT' or '-AZ5400'
+	    		if(ip.equals("128.6.171.130") || ip.equals("128.6.171.131")){
+	    		System.out.println("Correct peer found!");
+	        		System.out.println("Peer ID: "+ip);
+	        		Peer add= temp.peek();
+	    			ret.add(add);
 	    		}	
 	    	}
-	    	return null;
+	    	return ret;
 	    }
 	    /*
 	     * takes the bitfield and iterates through determining the boolean representation
@@ -124,5 +125,24 @@ public class utils {
 	 public static String printPeer(Peer p){
 		 String ret="peerid:"+(String)p.getPeerId().toString()+"\n"+"peer ip:"+p.getIP();
 		 return ret;
+	 }
+	 public static byte[] setBitfieldAt(byte[]bitfield, int pieceIndex){
+		 //get byte index 
+		 int byteIndex= pieceIndex/8;
+		 //get bits position in the byte
+		 int positionInByte= pieceIndex % 8;
+		 byte curr= bitfield[byteIndex];
+		 //or the current byte and the 1 being moved into its position at index
+		 bitfield[byteIndex]= (byte) (curr | 1 << positionInByte);
+		 return bitfield;
+	 }
+	 public static byte[] resetBitfieldAt(byte[] bitfield, int pieceIndex){
+		//get byte index 
+		 int byteIndex= pieceIndex/8;
+		 //get bits position in the byte
+		 int positionInByte= pieceIndex % 8;
+		 byte curr= bitfield[byteIndex];
+		 bitfield[byteIndex] =(byte)(curr & ~(1 << positionInByte));
+		 return bitfield;
 	 }
 }

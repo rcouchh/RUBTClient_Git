@@ -125,11 +125,10 @@ public class Tracker {
           this.info_Hash_url=iHash;
           this.port= port;
           this.totalPieces=t.piece_hashes.length;
-        
     }
     
-    public Peer announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event){
-    	 LinkedList<Peer> peersList;
+    public LinkedList<Peer> announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event){
+    	 LinkedList<Peer> peersList = null;
     	String urlString = (AnnounceUrl+"?"
     		        +"info_hash="+info_Hash_url
     		        +"&peer_id="+peer_id+"&port="+port+
@@ -152,15 +151,16 @@ public class Tracker {
 				System.out.println("trackerInterval: " + interval);
 				System.out.println("getting peerslist..");
 				peersList=getPeers(c);
-				peer=utils.findPeerWithPrefix(peersList);
-				if(peer== null){
-					System.out.println("peer not found!");
+				LinkedList<Peer> temp= peersList;
+				peersList=utils.findPeersWithPrefix(temp);
+				if(peersList== null){
+					System.out.println("peerlist null!");
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-    		 return peer;
+    		 return peersList;
     		 
     }
     /*

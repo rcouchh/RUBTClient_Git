@@ -1,13 +1,23 @@
 
 
+
+
+
+
 import java.io.*;
 import java.net.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 import customTools.utils;
-import Client.Tracker;
-import Client.Peer;
 import Messages.Message;
+import Client.Peer;
+import Client.Tracker;
 import GivenTools.*;
 
 /**
@@ -107,9 +117,13 @@ public class RUBTClient extends Thread{
     private RandomAccessFile writeFile;//actual file
     private int fileLength;//length of write file
     public String event; //event passed from tracker
-	private int port= 6881;
+	private int port= 6881;	
 	//clients bitfield
 	private byte[] bitfield;
+	//clients bitfield in bools
+	private boolean[] bitfieldBools;
+	//list of the peers client is interacting with
+	private LinkedList<Peer> peers;
 	
 	//# bytes downloaded by client at given point
 	private int downloaded;
@@ -146,11 +160,12 @@ synchronized void addDownloaded(int down){
 	System.out.println("Client has downloaded:"+ this.downloaded+down);
 	this.downloaded+=down;
 }
-
+public byte[] getBitfield(){
+	return this.bitfield;
+}
 
 
    public RUBTClient(TorrentInfo info, String WriteFile){
-
        this.tInfo= info;
        this.writeFileName= WriteFile;
        this.fileLength= info.file_length;
@@ -174,12 +189,17 @@ synchronized void addDownloaded(int down){
 		if(this.writeFile.length()!=this.fileLength){
 			this.writeFile.setLength(this.fileLength);
 		}
-		//try this.peer? need to see what the problem is
+		this.setBitfield(bitfield);
+		this.event="started";
 		System.out.println("length of file:"+tInfo.file_length);
 		System.out.println("number of pieces:"+ tInfo.piece_hashes.length);
-		peer = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
-		System.out.println("got peer:"+utils.printPeer(peer));
-		peer.start();
+		LinkedList<Peer> p= new LinkedList<Peer>();
+		p = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
+		if(!p.isEmpty()&& p!=null){
+			System.out.println("adding peers to list");
+			this.addPeers(p);
+		}
+		
 		
 	}catch (final FileNotFoundException fnfe) {
 		
@@ -200,10 +220,98 @@ synchronized void addDownloaded(int down){
 	}
 
 }
+	/**
+	 * Update the bitfield according to the existing file.
+	 * allows for client to start off where they finished off last time.
+	 * @throws IOException
+	 */
+	private void setBitfield(byte[] bitfield) throws IOException {
+		if(bitfield!=null){
+			this.bitfield=bitfield;
+			return;
+		}else{
+		final int bytes = (int) Math.ceil(this.totalPieces / 8.0);
+		this.bitfield = new byte[bytes];
 
+		for (int pieceIndex = 0; pieceIndex < this.totalPieces; pieceIndex++) {
+			byte[] temp;
+			if (pieceIndex == this.totalPieces - 1) {
+				// Last piece
+				temp = new byte[this.fileLength % this.pieceLength];
+			} else {
+				temp = new byte[this.pieceLength];
+			}
+			this.writeFile.read(temp);
+			if (this.verifyPiece(pieceIndex, temp)) {
+				this.setBitAtIndex(pieceIndex);
+				this.left = this.left - temp.length;
+			} else {
+				this.resetBitAtIndex(pieceIndex);
+			}
+		}
+	}
+	}
+	/**
+	 * takes the piece index and the block of the given piece to verify the piece hash 
+	 * @param pieceIndex
+	 * @param block
+	 * @return true for verified false for unverified
+	 * @throws IOException
+	 */
+	private boolean verifyPiece(final int pieceIndex, final byte[] block)
+			throws IOException {
 
+		final byte[] piece = new byte[block.length];
+		System.arraycopy(block, 0, piece, 0, block.length);
+		//byte array to hold sha hash at the piece index
+		byte[] hashCheck = null;
+		//messagedigest used to run the sha-1 hash alg
+		MessageDigest shaShankRedemption;
+		
+			try {
+				shaShankRedemption = MessageDigest.getInstance("SHA-1");
+				hashCheck = shaShankRedemption.digest(piece);
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				System.out.println("messagedigest unable to find sha-1 alg");
+			}	
+		
 
-  
+		if (Arrays.equals(this.tInfo.piece_hashes[pieceIndex].array(), hashCheck)) {
+			System.out.println("the piece at index"+ pieceIndex +"has been verified");
+			return true;
+		}
+		System.out.println("the piece at index"+ pieceIndex +"did not match the sha1");
+		return false;
+	}
+
+private void setBitAtIndex(int pieceIndex) throws IOException{
+	byte[] temp= this.getBitfield();
+	temp=utils.setBitfieldAt(temp,pieceIndex);
+	this.setBitfield(temp);
+}
+private void resetBitAtIndex(int pieceIndex)throws IOException{
+	byte[] temp= this.getBitfield();
+	temp=utils.setBitfieldAt(temp,pieceIndex);
+	this.setBitfield(temp);
+}
+private void addPeers(LinkedList<Peer> add){
+	if(this.peers == null){
+		for(Peer newGuy: add){
+			if(!newGuy.getIP().equals("128.6.171.130")){
+				this.peers.add(newGuy);
+				newGuy.start();
+			}
+		}
+	}
+	for(Peer newGuy :add){
+		if(!this.peers.contains(newGuy) && !newGuy.getIP().equals("128.6.171.130")){
+			this.peers.add(newGuy);
+			System.out.println("REMEMBER TO REMOVE THE BLOCK ON .130 BEFORE SUBMITTING! -added peer:"+newGuy.getIP()+ " to list of peers");
+			newGuy.start();
+		}
+	}
+}  
 
 
 }//end public class
