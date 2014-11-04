@@ -65,7 +65,16 @@ public class Peer extends Thread {
 	  // Total number of pieces in the torrent. 
 	  private int numPieces;
 	 //the piece that client is currently  requesting from peer
-	 private volatile PieceMessage reqPiece=null;
+	 private byte[] currPiece;
+	 //index of curr piece
+	 private int curIndex;
+	 //lenght of currpiece
+	 private int currPlength;
+	 //blockoffset for next request
+	 private int currBoffset;
+	 //length of lastblock in the piece
+	 private int lastBlockLength;
+	  final static int defaultLength= 16384; // = 16Kb
 	 //to keep track if peer has already validated handshake
 	 private volatile boolean hasPerformedHandShake= false;
 	 //if client is interested=true
@@ -277,7 +286,6 @@ public class Peer extends Thread {
 	int attempt=0;
 	public void run(){
 		try {
-			this.connect();
 			this.keepAliveInterval.scheduleAtFixedRate(new TimerTask() {
 				@Override
 				public void run() {
@@ -291,23 +299,25 @@ public class Peer extends Thread {
 				}
 
 			}, new Date(), 10000);
+			this.connect();
 			//intitiating handshake
 			initiateHandShake(peerID,info_hash);
 			//boolean verify=verifyHandShake(this.info_hash);
 			if(!verifyHandShake(this.info_hash)){
 				System.out.println("incorrect protocol of peers handshake");
 				this.disconnect();
-				if(attempt<2){//retry connect to peer 3 times
-					this.attempt++;
-					this.connect();
-				}
 			}
 			else{
 				this.writeMessage(new Message.Message_Bitfield(this.client.getBitfield()));
 				while(this.cantStopWontStop){
+						System.out.println("inside peer loop:");
 						Message m=Message.read(this.inStream);
-						//this.handleMessage(m);
+						System.out.println("reading a :" + m.getMessageId());
+						if(m.getMessageId()== Message.M_Piece){
+						this.handlePieceMessage(m);//handle piece message
+						}else{
 						this.toDo.put(new peerMessage(this,m));
+					}
 						//this.client.Handle(new peerMessage(this,m));
 						
 				}
@@ -318,35 +328,86 @@ public class Peer extends Thread {
 		}
 		
 	}
-
-public boolean handleMessage(Message m){
-		byte MID= m.getMessageId();
-		switch(MID){
-		case Message.M_Piece:
-			PieceMessage pM= (PieceMessage) m;
-			//means peer sent the piece without the client requesting it
-			if(this.reqPiece== null){
-				System.out.println("Client did not request this data!");
-				return false;
-			}
+//handling pieceMessage to build the actual piece from the blocks and request the other needed pieces
+public boolean handlePieceMessage(Message m) throws IOException, InterruptedException{
+			
+		final PieceMessage pM= (PieceMessage) m;
 			//make sure the piece is the one the client requested
-			if(this.reqPiece.getPieceIndex()== pM.getPieceIndex()){
+			if(this.currBoffset!= pM.getOffset()){
 				//check to make sure block isnt too large
-				if(pM.getOffset() + pM.getBlockData().length >this.reqPiece.getBlockData().length){
-					System.out.println("the block of data sent was too large!");
-				this.reqPiece= null;//reset req piece
+				System.out.println("wrong piece recieved!");
 				return false;
 				}
-			System.arraycopy(pM.getBlockData(),0,this.reqPiece.getBlockData(), pM.getOffset(), pM.getBlockData().length);
-			
-			}break;
-		default:
-			peerMessage add= new peerMessage(this,m);
-			this.client.addToDo(add);
+			if(this.curIndex != pM.getPieceIndex()){
+				System.out.println("wrong piece recieved!");
+				return false;
+			}else{
+			if((pM.getOffset() + defaultLength  + this.lastBlockLength) == this.currPlength) {
+				// Write the second to last block of piece
+				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
+						this.currBoffset, Peer.defaultLength);
+				Message_Request requestMsg;
+
+				// Request another piece
+				this.currBoffset = this.currBoffset + Peer.defaultLength;
+				requestMsg = new Message_Request(this.curIndex,
+						this.currBoffset, this.lastBlockLength);
+				this.writeMessage(requestMsg);
+			}else if(pM.getBlockData().length == this.lastBlockLength) {
+				// Write the last block of piece
+				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
+						this.currBoffset, this.lastBlockLength);
+				// Queue the full piece
+				final PieceMessage returnMsg = new PieceMessage(
+						this.curIndex, 0, this.currPiece);
+				this.toDo.put(new peerMessage(this, returnMsg));
+			}else if (((pM.getOffset() + defaultLength + this.lastBlockLength) == this.currPlength) && this.lastBlockLength == 0) {
+				// Write the last block of piece
+				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
+						this.currBoffset, defaultLength);
+				// Queue the full piece
+				final PieceMessage returnMsg = new PieceMessage(
+						this.curIndex, 0, this.currPiece);
+				this.toDo.put(new peerMessage(this, returnMsg));
+			}
+			else {
+				// Temporarily store the block
+				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
+						this.currBoffset, defaultLength);
+				Message_Request requestMsg;
+
+				// Request another piece
+				this.currBoffset = this.currBoffset + defaultLength;
+				requestMsg = new Message_Request(this.curIndex,
+						this.currBoffset, defaultLength);
+				this.writeMessage(requestMsg);
+			}
 		}
-		
-		return true;//returns true if all goes well
+			return true;//returns true if all goes well
+			
+}
+
+public void request(final int pieceIndex, final int pieceLength)
+		throws IOException {
+	this.curIndex = pieceIndex;
+	this.currPlength = pieceLength;
+	this.currPiece = new byte[pieceLength];
+	this.lastBlockLength = this.currPlength % Peer.defaultLength;
+
+	this.currBoffset = 0;
+
+	Message_Request requestMsg;
+	if (this.lastBlockLength == this.currPlength) {
+		// Request the last piece
+		requestMsg = new Message_Request(this.curIndex, this.currBoffset,
+				this.lastBlockLength);
+	} else {
+		requestMsg = new Message_Request(this.curIndex, this.currBoffset,
+				Peer.defaultLength);
 	}
+	this.writeMessage(requestMsg);
+}
+	
 	public byte[] getBitField(){
 		return this.bitfield;
 	}

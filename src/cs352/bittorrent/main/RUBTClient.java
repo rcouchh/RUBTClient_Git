@@ -70,7 +70,7 @@ public class RUBTClient extends Thread{
         try{
 
         //open the .torrent file
-        final File torrentFile = new File(torr);
+        final File torrentFile = new File("files/"+torr);
         final DataInputStream torrentDataIn =
                 new DataInputStream(new FileInputStream(torrentFile));
 
@@ -255,9 +255,9 @@ private static class TrackerAnnounce extends TimerTask{
 	}
 	{
 		//scheduling the regular announces
-		final int interval = this.tracker.getInterval();
-		this.announceTimer.schedule(new TrackerAnnounce(this),
-				interval * 1000);	
+		// int interval = this.tracker.getInterval();
+	//	this.announceTimer.schedule(new TrackerAnnounce(this),
+		//		interval * 1000);
 	}
 	try {
 		while((command=userInput.readLine())!= null){
@@ -318,7 +318,7 @@ private static class TrackerAnnounce extends TimerTask{
 					// Set peer bitfield
 					final Message_Bitfield bitfieldMsg = (Message_Bitfield) msg;
 					peer.setPeerBitfield(bitfieldMsg.getBitfield());
-
+					System.out.println("setting bitfield for peer, handling the bitfield message");
 					// Inspect bitfield
 					peer.setLocalInterested(this.isLocalInterested(peer));
 					if (!peer.isLocalChoke() && peer.isLocalInterested()) {
@@ -368,15 +368,16 @@ private static class TrackerAnnounce extends TimerTask{
 				case Message.M_Piece:
 					final PieceMessage pieceMsg = (PieceMessage) msg;
 					
-					// Updated downloaded
-					this.downloaded = this.downloaded
-							+ pieceMsg.getBlockData().length;
-					if(this.downloaded== this.totalPieces){
-						System.out.println("downloading last piece!");
-					}
+					
 					// Verify piece
 					if (this.verifyPiece(pieceMsg.getPieceIndex(),
 							pieceMsg.getBlockData())) {
+						// Updated downloaded
+						this.downloaded = this.downloaded
+								+ pieceMsg.getBlockData().length;
+						if(this.downloaded== this.totalPieces){
+							System.out.println("downloading last piece!");
+						}
 						// Write piece
 						this.writeFile.seek(pieceMsg.getPieceIndex()
 								* this.pieceLength);
@@ -485,18 +486,17 @@ private static class TrackerAnnounce extends TimerTask{
 		//byte array to hold sha hash at the piece index
 		byte[] hashCheck = null;
 		//messagedigest used to run the sha-1 hash alg
-		MessageDigest shaShankRedemption;
+		MessageDigest sha;
 		
 			try {
-				shaShankRedemption = MessageDigest.getInstance("SHA-1");
-				hashCheck = shaShankRedemption.digest(piece);
+				sha = MessageDigest.getInstance("SHA-1");
+				sha.update(piece);
+				hashCheck = sha.digest();
 			} catch (NoSuchAlgorithmException e) {
 				// TODO Auto-generated catch block
 				System.out.println("messagedigest unable to find sha-1 alg");
 			}	
-		
-
-		if (Arrays.equals(this.tInfo.piece_hashes[pieceIndex].array(), hashCheck)) {
+		if (MessageDigest.isEqual(this.tInfo.piece_hashes[pieceIndex].array(), hashCheck)) {
 			System.out.println("the piece at index"+ pieceIndex +"has been verified");
 			return true;
 		}
@@ -516,8 +516,8 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 }
 private void addPeers(List<Peer> p){
 	
-	for(Peer newGuy :p){
-		if(newGuy!=null && newGuy.getIP().equals("128.6.171.130") && newGuy.getIP().equals("128.6.171.131")){
+	for(Peer newGuy :p){//&& newGuy.getIP().equals("128.6.171.130") 
+		if(newGuy!=null && newGuy.getIP().equals("128.6.171.131")){
 			if(!this.peers.contains(newGuy)){
 				if(newGuy.getIP().equals("128.6.171.130")&& this.onethirty==false){
 					this.onethirty=true;
@@ -525,14 +525,16 @@ private void addPeers(List<Peer> p){
 					System.out.println("REMEMBER TO REMOVE THE BLOCK ON .130 BEFORE SUBMITTING! -added peer:"+newGuy.getIP()+ " to list of peers");
 					newGuy.setClient(this);
 					newGuy.setToDo(this.toDo);
-					newGuy.start();
+					Thread t= new Thread(newGuy);
+					t.start();
 				}if(newGuy.getIP().equals("128.6.171.131")&& this.onethirtyone==false){
 					this.onethirtyone=true;
 					this.peers.add(newGuy);
 					System.out.println("REMEMBER TO REMOVE THE BLOCK ON .130 BEFORE SUBMITTING! -added peer:"+newGuy.getIP()+ " to list of peers");
 					newGuy.setClient(this);
 					newGuy.setToDo(this.toDo);
-					newGuy.start();
+					Thread t= new Thread(newGuy);
+					t.start();
 				}
 			}
 			
@@ -566,174 +568,19 @@ private boolean isLocalInterested(Peer p){
 private void choosePiece(final Peer p) throws IOException{
 	final boolean[] peersBit=p.getBoolean();
 	int Index;
-	Message_Request request;
 	for (Index=0; Index<this.totalPieces; Index++){
 		if(!this.bitfieldBools[Index] && peersBit[Index]){
 			int reqPieceLength=0;
 			//if last piece
 			if(Index == this.totalPieces-1){
 				reqPieceLength=this.fileLength % this.pieceLength;
+				
 			}else{
 				reqPieceLength=this.pieceLength;
 			}
-			int pieceIndex=Index;
-			int pieceLength= reqPieceLength;
-			byte[] piece= new byte[reqPieceLength];
-			int lastBlock=pieceLength % this.BLOCK_LENGTH;
-			if(lastBlock == pieceLength){
-				request = new Message_Request(pieceIndex, 0,
-						lastBlock);
-			}else{
-				request = new Message_Request(pieceIndex, 0,
-						this.BLOCK_LENGTH);
-			}
-			p.writeMessage(request);
+			p.request(Index, reqPieceLength);
 			break;
 		}
 	}
-}/*
-public void Handle(peerMessage pm){
-	try{
-		 Message msg= pm.getMessage();
-		 Peer peer = pm.getPeer();
-		 switch (msg.getMessageId()){
-		 case Message.M_KeepAlive:
-			 peer.writeMessage(Message.keepAlive);
-				break;
-			case Message.M_Choke:
-				// Update internal state
-				peer.setLocalChoked(true);
-				break;
-			case Message.M_Unchoke:
-				// Update internal state
-				peer.setLocalChoked(false);
-
-				if (!peer.isLocalChoke() && peer.isLocalInterested()) {
-					this.choosePiece(peer);
-				} else {
-					peer.writeMessage(Message.keepAlive);
-				}
-				break;
-			case Message.M_Interested:
-				// Update internal state
-				peer.setRemoteInterested(true);
-
-				if (this.unchokedPeers < this.peerLimit) {
-					this.unchokedPeers++;
-					peer.writeMessage(Message.Unchoke);
-					peer.setRemoteChoked(false);
-				} else {
-					peer.writeMessage(Message.Choke);
-					peer.setRemoteChoked(true);
-				}
-				
-				break;
-			case Message.M_Uninterested:
-				// Update internal state
-				peer.setRemoteInterested(false);
-				peer.writeMessage(Message.keepAlive);
-				break;
-			case Message.M_Bitfield:
-				// Set peer bitfield
-				final Message_Bitfield bitfieldMsg = (Message_Bitfield) msg;
-				peer.setPeerBitfield(bitfieldMsg.getBitfield());
-
-				// Inspect bitfield
-				peer.setLocalInterested(this.isLocalInterested(peer));
-				if (!peer.isLocalChoke() && peer.isLocalInterested()) {
-					peer.writeMessage(Message.Interested);
-				} else if (peer.isLocalInterested()) {
-					peer.writeMessage(Message.Interested);
-				} else {
-					peer.writeMessage(Message.keepAlive);
-				}
-				break;
-			case Message.M_Have:
-				final Message_Have haveMsg = (Message_Have) msg;
-
-				if (peer.getBitField()== null) {
-					peer.initializePeerBitfield(this.totalPieces);
-				}
-				peer.setPeerBitAtIndex(haveMsg.getPieceIndex());
-
-				peer.setLocalInterested(this.isLocalInterested(peer));
-				if (!peer.isLocalChoke() && peer.isLocalInterested()) {
-					peer.writeMessage(Message.Interested);
-					peer.setLocalInterested(true);
-				} else {
-					peer.writeMessage(Message.keepAlive);
-				}
-				break;
-			case Message.M_Request:
-				final Message_Request requestMsg = (Message_Request) msg;
-
-				// Check that we have the piece
-				if (this.bitfieldBools[requestMsg.getIndex()]) {
-					// Send the block
-					byte[] block = new byte[requestMsg.getBlockLength()];
-					System.arraycopy(utils.fileToBytes(this.writeFile),
-							requestMsg.getOffset(), block, 0,
-							requestMsg.getBlockLength());
-					final PieceMessage pieceMsg = new PieceMessage(
-							requestMsg.getIndex(),
-							requestMsg.getOffset(), block);
-					peer.writeMessage(pieceMsg);
-				} else {
-					// Peer is misbehaving, choke
-					peer.writeMessage(Message.Choke);
-				}
-
-				break;
-			case Message.M_Piece:
-				final PieceMessage pieceMsg = (PieceMessage) msg;
-				
-				// Updated downloaded
-				this.downloaded = this.downloaded
-						+ pieceMsg.getBlockData().length;
-				if(this.downloaded== this.totalPieces){
-					System.out.println("downloading last piece!");
-				}
-				// Verify piece
-				if (this.verifyPiece(pieceMsg.getPieceIndex(),
-						pieceMsg.getBlockData())) {
-					// Write piece
-					this.writeFile.seek(pieceMsg.getPieceIndex()
-							* this.pieceLength);
-					this.writeFile.write(pieceMsg.getBlockData());
-					this.setBitAtIndex(pieceMsg.getPieceIndex());
-					// Recalculate amount left to download
-					this.left = this.left - pieceMsg.getBlockData().length;
-					// For some reason left can go below 0...
-					if (this.left < 0) {
-						System.out.println("left went below 0!");
-					}
-
-					// Notify peers that the piece is complete
-					this.notifyPeers(pieceMsg.getPieceIndex());
-				} else {
-					// Drop piece
-					System.out.println("Dropping the piece at"+ pieceMsg.getPieceIndex());
-					this.resetBitAtIndex(pieceMsg.getPieceIndex());
-				
-				}
-
-				if (!peer.isLocalChoke() && peer.isLocalInterested()) {
-					this.choosePiece(peer);
-				} else {
-					peer.writeMessage(Message.keepAlive);
-				}
-				break;
-			default:
-				System.out.println("unknown type");
-				break;
-			}
-	 	} catch (final IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (final NullPointerException npe) {
-			// TODO Auto-generated catch block
-			npe.printStackTrace();
-		}
 }
-*/
 }//end public class
