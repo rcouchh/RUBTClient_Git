@@ -312,11 +312,15 @@ public class Peer extends Thread {
 				while(this.cantStopWontStop){
 						System.out.println("inside peer loop:");
 						Message m=Message.read(this.inStream);
+						
 						System.out.println("reading a :" + m.getMessageId());
 						if(m.getMessageId()== Message.M_Piece){
+							System.out.println("Handling piece message...");
 						this.handlePieceMessage(m);//handle piece message
 						}else{
-						this.toDo.put(new peerMessage(this,m));
+							this.toDo.put(new peerMessage(this,m));
+							System.out.println("Message added to peer queue");
+
 					}
 						//this.client.Handle(new peerMessage(this,m));
 						
@@ -333,6 +337,10 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			
 		final PieceMessage pM= (PieceMessage) m;
 			//make sure the piece is the one the client requested
+		System.out.println("inside handle piece msg:");
+		if(pM.getBlockData()!=null){
+		System.out.println("piece is not null");
+		}
 			if(this.currBoffset!= pM.getOffset()){
 				//check to make sure block isnt too large
 				System.out.println("wrong piece recieved!");
@@ -344,6 +352,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			}else{
 			if((pM.getOffset() + defaultLength  + this.lastBlockLength) == this.currPlength) {
 				// Write the second to last block of piece
+				System.out.println("Writing 2nd to last piece!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, Peer.defaultLength);
 				Message_Request requestMsg;
@@ -355,6 +364,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 				this.writeMessage(requestMsg);
 			}else if(pM.getBlockData().length == this.lastBlockLength) {
 				// Write the last block of piece
+				System.out.println("Writing last block!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, this.lastBlockLength);
 				// Queue the full piece
@@ -363,6 +373,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 				this.toDo.put(new peerMessage(this, returnMsg));
 			}else if (((pM.getOffset() + defaultLength + this.lastBlockLength) == this.currPlength) && this.lastBlockLength == 0) {
 				// Write the last block of piece
+				System.out.println("Writing last block2!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, defaultLength);
 				// Queue the full piece
@@ -372,6 +383,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			}
 			else {
 				// Temporarily store the block
+				System.out.println("Temp storing block!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, defaultLength);
 				Message_Request requestMsg;

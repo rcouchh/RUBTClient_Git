@@ -259,24 +259,15 @@ private static class TrackerAnnounce extends TimerTask{
 	//	this.announceTimer.schedule(new TrackerAnnounce(this),
 		//		interval * 1000);
 	}
-	try {
-		while((command=userInput.readLine())!= null){
-			if(command.equalsIgnoreCase("terminate")){
-				this.shutdownGracefully();
-				userInput.close();
-			}
-		}
-	} catch (IOException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	}
+
 	while(cantStopWontStop){
-		
+		System.out.println("In client cantStopWontStop");
 		
 			try{
 			 peerMessage handler= this.toDo.take(); 
 			 Message msg= handler.getMessage();
 			 Peer peer = handler.getPeer();
+		 		System.out.println("Message ID from client queue: "+msg.getMessageId());
 			 switch (msg.getMessageId()){
 			 case Message.M_KeepAlive:
 				 peer.writeMessage(Message.keepAlive);
@@ -367,7 +358,7 @@ private static class TrackerAnnounce extends TimerTask{
 					break;
 				case Message.M_Piece:
 					final PieceMessage pieceMsg = (PieceMessage) msg;
-					
+					System.out.println("Piece Msg received by client!");
 					
 					// Verify piece
 					if (this.verifyPiece(pieceMsg.getPieceIndex(),
@@ -405,21 +396,37 @@ private static class TrackerAnnounce extends TimerTask{
 					break;
 				}
 		 	} catch (InterruptedException ie){
+		 		System.out.println("IE Exception from client!");
 		 		continue;
 		 	}
 			catch (final IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+		 		System.out.println("IO Exception from client!");
+
+				
 			} catch (final NullPointerException npe) {
 				// TODO Auto-generated catch block
+		 		System.out.println("NPE Exception from client!");
 				npe.printStackTrace();
 			}
 		
 	}
 	
+	try {
+		while((command=userInput.readLine())!= null){
+			if(command.equalsIgnoreCase("terminate")){
+				this.shutdownGracefully();
+				userInput.close();
+			}
+		}
+	} catch (IOException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
 		 
 }
-  public void  shutdownGracefully() throws IOException {
+  public void shutdownGracefully() throws IOException {
 		System.out.println("Shutting down client.");
 		this.cantStopWontStop = false;
 		
