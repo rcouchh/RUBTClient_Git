@@ -174,7 +174,7 @@ public class Message {
 		private final int Index;
 		
 		public Message_Have(int PieceIndex){
-			super(4,M_Have);
+			super(5,M_Have);
 			this.Index=PieceIndex;
 		}
 		public int getPieceIndex(){

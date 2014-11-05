@@ -350,7 +350,31 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 				System.out.println("wrong piece recieved!");
 				return false;
 			}else{
-			if((pM.getOffset() + defaultLength  + this.lastBlockLength) == this.currPlength) {
+				
+			
+			if(pM.getBlockData().length == this.lastBlockLength) {
+				// Write the last block of piece
+				System.out.println("Writing last block!");
+				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
+				this.currBoffset, this.lastBlockLength);
+				// Queue the full piece
+				final PieceMessage returnMsg = new PieceMessage(
+				this.curIndex, 0, this.currPiece);
+				this.toDo.put(new peerMessage(this, returnMsg));
+				}
+
+			else if (((pM.getOffset() + defaultLength + this.lastBlockLength) == this.currPlength) && this.lastBlockLength == 0) {
+				// Write the last block of piece
+				System.out.println("Writing last block2!");
+				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
+						this.currBoffset, defaultLength);
+				// Queue the full piece
+				final PieceMessage returnMsg = new PieceMessage(
+						this.curIndex, 0, this.currPiece);
+				this.toDo.put(new peerMessage(this, returnMsg));
+			}
+			
+			else if((pM.getOffset() + defaultLength  + this.lastBlockLength) == this.currPlength) {
 				// Write the second to last block of piece
 				System.out.println("Writing 2nd to last piece!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
@@ -361,26 +385,9 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 				this.currBoffset = this.currBoffset + Peer.defaultLength;
 				requestMsg = new Message_Request(this.curIndex,
 						this.currBoffset, this.lastBlockLength);
-				this.writeMessage(requestMsg);
-			}else if(pM.getBlockData().length == this.lastBlockLength) {
-				// Write the last block of piece
-				System.out.println("Writing last block!");
-				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
-						this.currBoffset, this.lastBlockLength);
-				// Queue the full piece
-				final PieceMessage returnMsg = new PieceMessage(
-						this.curIndex, 0, this.currPiece);
-				this.toDo.put(new peerMessage(this, returnMsg));
-			}else if (((pM.getOffset() + defaultLength + this.lastBlockLength) == this.currPlength) && this.lastBlockLength == 0) {
-				// Write the last block of piece
-				System.out.println("Writing last block2!");
-				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
-						this.currBoffset, defaultLength);
-				// Queue the full piece
-				final PieceMessage returnMsg = new PieceMessage(
-						this.curIndex, 0, this.currPiece);
-				this.toDo.put(new peerMessage(this, returnMsg));
+				this.writeMessage(requestMsg);	
 			}
+			
 			else {
 				// Temporarily store the block
 				System.out.println("Temp storing block!");
@@ -398,6 +405,13 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			return true;//returns true if all goes well
 			
 }
+
+
+
+
+
+
+
 
 public void request(final int pieceIndex, final int pieceLength)
 		throws IOException {

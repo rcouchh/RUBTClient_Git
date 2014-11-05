@@ -70,7 +70,8 @@ public class RUBTClient extends Thread{
         try{
 
         //open the .torrent file
-        final File torrentFile = new File("files/"+torr);
+       // final File torrentFile = new File("files/"+torr);
+        final File torrentFile = new File(torr);
         final DataInputStream torrentDataIn =
                 new DataInputStream(new FileInputStream(torrentFile));
 
@@ -378,6 +379,7 @@ private static class TrackerAnnounce extends TimerTask{
 						this.left = this.left - pieceMsg.getBlockData().length;
 						// Notify peers that the piece is complete
 						this.notifyPeers(pieceMsg.getPieceIndex());
+						System.out.println("Wrote piece to file!");
 					} else {
 						// Drop piece
 						System.out.println("Dropping the piece at"+ pieceMsg.getPieceIndex());
@@ -523,13 +525,13 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 }
 private void addPeers(List<Peer> p){
 	
-	for(Peer newGuy :p){//&& newGuy.getIP().equals("128.6.171.130") 
-		if(newGuy!=null && newGuy.getIP().equals("128.6.171.131")){
+	for(Peer newGuy :p){//
+		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
 			if(!this.peers.contains(newGuy)){
 				if(newGuy.getIP().equals("128.6.171.130")&& this.onethirty==false){
 					this.onethirty=true;
 					this.peers.add(newGuy);
-					System.out.println("REMEMBER TO REMOVE THE BLOCK ON .130 BEFORE SUBMITTING! -added peer:"+newGuy.getIP()+ " to list of peers");
+					System.out.println(" -added peer:"+newGuy.getIP()+ " to list of peers");
 					newGuy.setClient(this);
 					newGuy.setToDo(this.toDo);
 					Thread t= new Thread(newGuy);
@@ -537,7 +539,7 @@ private void addPeers(List<Peer> p){
 				}if(newGuy.getIP().equals("128.6.171.131")&& this.onethirtyone==false){
 					this.onethirtyone=true;
 					this.peers.add(newGuy);
-					System.out.println("REMEMBER TO REMOVE THE BLOCK ON .130 BEFORE SUBMITTING! -added peer:"+newGuy.getIP()+ " to list of peers");
+					System.out.println(" -added peer:"+newGuy.getIP()+ " to list of peers");
 					newGuy.setClient(this);
 					newGuy.setToDo(this.toDo);
 					Thread t= new Thread(newGuy);
