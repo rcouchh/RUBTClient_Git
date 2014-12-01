@@ -70,8 +70,8 @@ public class RUBTClient extends Thread{
         try{
 
         //open the .torrent file
-       // final File torrentFile = new File("files/"+torr);
-        final File torrentFile = new File(torr);
+        final File torrentFile = new File("files/"+torr);
+       // final File torrentFile = new File(torr);
         final DataInputStream torrentDataIn =
                 new DataInputStream(new FileInputStream(torrentFile));
 
@@ -380,6 +380,12 @@ private static class TrackerAnnounce extends TimerTask{
 						// Notify peers that the piece is complete
 						this.notifyPeers(pieceMsg.getPieceIndex());
 						System.out.println("Wrote piece to file!");
+						
+						
+						//need to update client's bitfield, keeps downloading same piece
+						
+						
+						
 					} else {
 						// Drop piece
 						System.out.println("Dropping the piece at"+ pieceMsg.getPieceIndex());
