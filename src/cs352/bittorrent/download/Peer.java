@@ -313,7 +313,7 @@ public class Peer extends Thread {
 						System.out.println("inside peer loop:");
 						Message m=Message.read(this.inStream);
 						
-						System.out.println("reading a :" + m.getMessageId());
+						//System.out.println("reading a :" + m.getMessageId());
 						if(m.getMessageId()== Message.M_Piece){
 							System.out.println("Handling piece message...");
 						this.handlePieceMessage(m);//handle piece message
@@ -410,8 +410,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 
 
 
-
-
+//check for errors in sending request for right blocks/pieces
 
 public void request(final int pieceIndex, final int pieceLength)
 		throws IOException {
@@ -431,6 +430,7 @@ public void request(final int pieceIndex, final int pieceLength)
 		requestMsg = new Message_Request(this.curIndex, this.currBoffset,
 				Peer.defaultLength);
 	}
+	System.out.println("Requesting piece index: "+requestMsg.getIndex());
 	this.writeMessage(requestMsg);
 }
 	
@@ -456,6 +456,9 @@ public void request(final int pieceIndex, final int pieceLength)
 		}
 		
 	}
+	
+
+	
 	//initializes a peers bitfield with given total pieces from metafile
 	public void initializePeerBitfield(final int totalPieces) {
 		final int bytes = (int) Math.ceil((double) totalPieces / 8);

@@ -231,6 +231,7 @@ private static class TrackerAnnounce extends TimerTask{
 		}
 		this.setBitfieldStart();
 		this.event="started";
+		printBitfield();
 		System.out.println("length of file:"+tInfo.file_length);
 		System.out.println("number of pieces:"+ tInfo.piece_hashes.length);
 		p = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
@@ -268,7 +269,8 @@ private static class TrackerAnnounce extends TimerTask{
 			 peerMessage handler= this.toDo.take(); 
 			 Message msg= handler.getMessage();
 			 Peer peer = handler.getPeer();
-		 		System.out.println("Message ID from client queue: "+msg.getMessageId());
+				
+		 		//System.out.println("Message ID from client queue: "+msg.getMessageId());
 			 switch (msg.getMessageId()){
 			 case Message.M_KeepAlive:
 				 peer.writeMessage(Message.keepAlive);
@@ -321,13 +323,17 @@ private static class TrackerAnnounce extends TimerTask{
 						peer.writeMessage(Message.keepAlive);
 					}
 					break;
+					
+					
+					
+					//check for error
 				case Message.M_Have:
 					final Message_Have haveMsg = (Message_Have) msg;
-
 					if (peer.getBitField()== null) {
 						peer.initializePeerBitfield(this.totalPieces);
 					}
 					peer.setPeerBitAtIndex(haveMsg.getPieceIndex());
+					
 
 					peer.setLocalInterested(this.isLocalInterested(peer));
 					if (!peer.isLocalChoke() && peer.isLocalInterested()) {
@@ -337,12 +343,15 @@ private static class TrackerAnnounce extends TimerTask{
 						peer.writeMessage(Message.keepAlive);
 					}
 					break;
+					
+					
+					
 				case Message.M_Request:
 					final Message_Request requestMsg = (Message_Request) msg;
 
-					// Check that we have the piece
+					// Check for piece
 					if (this.bitfieldBools[requestMsg.getIndex()]) {
-						// Send the block
+						// Send block
 						byte[] block = new byte[requestMsg.getBlockLength()];
 						System.arraycopy(utils.fileToBytes(this.writeFile),
 								requestMsg.getOffset(), block, 0,
@@ -352,7 +361,7 @@ private static class TrackerAnnounce extends TimerTask{
 								requestMsg.getOffset(), block);
 						peer.writeMessage(pieceMsg);
 					} else {
-						// Peer is misbehaving, choke
+						// Choke
 						peer.writeMessage(Message.Choke);
 					}
 
@@ -382,10 +391,7 @@ private static class TrackerAnnounce extends TimerTask{
 						System.out.println("Wrote piece to file!");
 						
 						
-						//need to update client's bitfield, keeps downloading same piece
-						
-						
-						
+		//need to update client's bitfield, keeps downloading same piece
 					} else {
 						// Drop piece
 						System.out.println("Dropping the piece at"+ pieceMsg.getPieceIndex());
@@ -454,6 +460,18 @@ private static class TrackerAnnounce extends TimerTask{
 	}
 
   
+  
+  
+  
+  
+  
+  /*
+   * problem here, client bitfield being set from here
+   * 
+   * client bitfield incorrect
+   * 
+   * 
+   */
    /**
 	 * Update the bitfield according to the existing file.
 	 * allows for client to start off where they finished off last time.
@@ -479,8 +497,25 @@ private static class TrackerAnnounce extends TimerTask{
 				this.resetBitAtIndex(pieceIndex);
 			}
 		}
+		
    }
 	
+   
+   public void printBitfield(){
+	/*
+	 * CLIENT BITFIELD IS WRONG, SAYING HAS ALL PIECES BUT 4 AT THE END
+	 * 
+	 */
+	for(int i=0; i<this.bitfieldBools.length; i++){
+		if(this.bitfieldBools[i]){
+			System.out.println("True");
+		}
+		else{
+			System.out.println("False");
+		}
+	}
+   }
+   
 	private void setBitfield(byte[] bitfield) throws IOException {
 			this.bitfield=bitfield;
 			this.bitfieldBools=utils.bitsToBool(bitfield);
@@ -524,15 +559,18 @@ private void setBitAtIndex(int pieceIndex) throws IOException{
 	temp=utils.setBitfieldAt(temp,pieceIndex);
 	this.setBitfield(temp);
 }
+
 private void resetBitAtIndex(int pieceIndex)throws IOException{
 	byte[] temp= this.getBitfield();
-	temp=utils.setBitfieldAt(temp,pieceIndex);
+	temp=utils.resetBitfieldAt(temp,pieceIndex);
 	this.setBitfield(temp);
 }
 private void addPeers(List<Peer> p){
 	
 	for(Peer newGuy :p){//
 		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
+	//	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
+	
 			if(!this.peers.contains(newGuy)){
 				if(newGuy.getIP().equals("128.6.171.130")&& this.onethirty==false){
 					this.onethirty=true;
@@ -563,6 +601,7 @@ private void notifyPeers(int indexDownloaded){
 		Message_Have have= new Message_Have(indexDownloaded);
 		try {
 			p.writeMessage(have);
+			System.out.println("Sending have msg for index: "+have.getPieceIndex());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -580,20 +619,49 @@ private boolean isLocalInterested(Peer p){
 	}
 	return false;
 }
+
+
+
+
+/*
+ * 
+ *   found it
+ * 
+ * 
+ */
+//error choosing same piece # over and over, only 434 and 432
 private void choosePiece(final Peer p) throws IOException{
+	//is it updating client boolean array?
+	
+	//final boolean[] peersBit= utils.bitsToBool(p.getBitField());
 	final boolean[] peersBit=p.getBoolean();
-	int Index;
-	for (Index=0; Index<this.totalPieces; Index++){
-		if(!this.bitfieldBools[Index] && peersBit[Index]){
+	
+	/*
+	//prints peer's boolean array
+	for(int i=0; i<peersBit.length; i++){
+		if(peersBit[i]){
+			System.out.println("True");
+		}
+		else{
+			System.out.println("False");
+		}
+	}
+*/
+	
+
+	 
+	for (int i=0; i<this.totalPieces; i++){
+		if(!this.bitfieldBools[i] && peersBit[i]){
 			int reqPieceLength=0;
 			//if last piece
-			if(Index == this.totalPieces-1){
+			if(i == this.totalPieces-1){
 				reqPieceLength=this.fileLength % this.pieceLength;
 				
 			}else{
 				reqPieceLength=this.pieceLength;
 			}
-			p.request(Index, reqPieceLength);
+			System.out.println("Choosing piece index : " + i);
+			p.request(i, reqPieceLength);
 			break;
 		}
 	}
