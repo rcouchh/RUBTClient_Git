@@ -373,7 +373,7 @@ private static class TrackerAnnounce extends TimerTask{
 					// Verify piece
 					if (this.verifyPiece(pieceMsg.getPieceIndex(),
 							pieceMsg.getBlockData())) {
-						// Updated downloaded
+						// Update downloaded
 						this.downloaded = this.downloaded
 								+ pieceMsg.getBlockData().length;
 						if(this.downloaded== this.totalPieces){
@@ -391,14 +391,17 @@ private static class TrackerAnnounce extends TimerTask{
 						System.out.println("Wrote piece to file!");
 						
 						
-		//need to update client's bitfield, keeps downloading same piece
 					} else {
 						// Drop piece
 						System.out.println("Dropping the piece at"+ pieceMsg.getPieceIndex());
 						this.resetBitAtIndex(pieceMsg.getPieceIndex());
 					
 					}
-
+					
+					
+					
+					//need to update client's bitfield, keeps requesting same piece
+					//error within choosePiece
 					if (!peer.isLocalChoke() && peer.isLocalInterested()) {
 						this.choosePiece(peer);
 					} else {
@@ -464,14 +467,7 @@ private static class TrackerAnnounce extends TimerTask{
   
   
   
-  
-  /*
-   * problem here, client bitfield being set from here
-   * 
-   * client bitfield incorrect
-   * 
-   * 
-   */
+
    /**
 	 * Update the bitfield according to the existing file.
 	 * allows for client to start off where they finished off last time.
@@ -491,6 +487,8 @@ private static class TrackerAnnounce extends TimerTask{
 			}
 			this.writeFile.read(temp);
 			if (this.verifyPiece(pieceIndex, temp)) {
+				
+				//index of bitfield gets set here
 				this.setBitAtIndex(pieceIndex);
 				this.left = this.left - temp.length;
 			} else {
@@ -503,15 +501,15 @@ private static class TrackerAnnounce extends TimerTask{
    
    public void printBitfield(){
 	/*
-	 * CLIENT BITFIELD IS WRONG, SAYING HAS ALL PIECES BUT 4 AT THE END
+	 * CLIENT BITFIELD (bitfieldBools) IS WRONG, OFFSET OF 7
 	 * 
 	 */
 	for(int i=0; i<this.bitfieldBools.length; i++){
 		if(this.bitfieldBools[i]){
-			System.out.println("True");
+			System.out.println("Client bitfield has index: "+i);
 		}
 		else{
-			System.out.println("False");
+			//System.out.println("False");
 		}
 	}
    }
@@ -547,10 +545,10 @@ private static class TrackerAnnounce extends TimerTask{
 				System.out.println("messagedigest unable to find sha-1 alg");
 			}	
 		if (MessageDigest.isEqual(this.tInfo.piece_hashes[pieceIndex].array(), hashCheck)) {
-			System.out.println("the piece at index"+ pieceIndex +"has been verified");
+			System.out.println("the piece at index "+ pieceIndex +" has been verified");
 			return true;
 		}
-		System.out.println("the piece at index"+ pieceIndex +"did not match the sha1");
+		//System.out.println("the piece at index"+ pieceIndex +"did not match the sha1");
 		return false;
 	}
 
@@ -568,8 +566,8 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 private void addPeers(List<Peer> p){
 	
 	for(Peer newGuy :p){//
-		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
-	//	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
+	//	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
+		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
 	
 			if(!this.peers.contains(newGuy)){
 				if(newGuy.getIP().equals("128.6.171.130")&& this.onethirty==false){
@@ -624,18 +622,16 @@ private boolean isLocalInterested(Peer p){
 
 
 /*
- * 
- *   found it
- * 
- * 
- */
-//error choosing same piece # over and over, only 434 and 432
+//error choosing same piece # over and over
+//is it updating client boolean array?
+* also need to switch to rarest piece algorithm for choosing, 
+* but thats harder and is only worth 5% of grade so we should
+* get this working the easy way first
+*/
 private void choosePiece(final Peer p) throws IOException{
-	//is it updating client boolean array?
 	
 	//final boolean[] peersBit= utils.bitsToBool(p.getBitField());
 	final boolean[] peersBit=p.getBoolean();
-	
 	/*
 	//prints peer's boolean array
 	for(int i=0; i<peersBit.length; i++){
@@ -647,11 +643,19 @@ private void choosePiece(final Peer p) throws IOException{
 		}
 	}
 */
-	
-
-	 
+	/* 
+	 * 	***BOOLEAN ARRAY FOR PEER AND CLIENT IS DIFFERENT # OF PIECES***
+	 *  ***client array (bitfieldBools) is offset by 7 spaces, starts at index 7 instead of 0***
+	 * 
+	 * 
+	 * 
+	 */
 	for (int i=0; i<this.totalPieces; i++){
-		if(!this.bitfieldBools[i] && peersBit[i]){
+		/*set to i-7, but then is -1 when it gets to index 8... need to switch
+		 * to bitfield and not bitfieldBools here
+		 * 
+		*/
+		if(!this.bitfieldBools[7-i] && peersBit[i]){
 			int reqPieceLength=0;
 			//if last piece
 			if(i == this.totalPieces-1){
