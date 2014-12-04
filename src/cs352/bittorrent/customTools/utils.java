@@ -156,7 +156,23 @@ public class utils {
 		 //get bits position in the byte
 		 int positionInByte= pieceIndex % 8;
 		 byte curr= bitfield[byteIndex];
-		 bitfield[byteIndex] =(byte)(curr & ~(1 << positionInByte));
+		 bitfield[byteIndex] =(byte)(curr &= ~(1 << positionInByte));
 		 return bitfield;
 	 }
+	 /**
+	  * 
+	  * @param bitfield 
+	  * bitfield to look if bits set
+	  * @param index
+	  * piece index 
+	  * @return if the bit is set or not (if the client/peer has)
+	  */
+	 public static boolean is_bit_set(byte[] bitfield, int pieceIndex){
+		 int posByte=(pieceIndex/8);
+		 int posBit= 7 -(pieceIndex % 8);
+		 byte byteCheck = bitfield[posByte];
+		 int bitCheck = (byteCheck >> (8 - (posBit + 1))) & 0x0001;
+		 return bitCheck == 1;
+	 }
+	 
 }

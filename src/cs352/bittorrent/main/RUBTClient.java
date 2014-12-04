@@ -369,13 +369,13 @@ private static class TrackerAnnounce extends TimerTask{
 				case Message.M_Piece:
 					final PieceMessage pieceMsg = (PieceMessage) msg;
 					System.out.println("Piece Msg received by client!");
-					
+					// Update downloaded
+					this.downloaded = this.downloaded
+							+ pieceMsg.getBlockData().length;
 					// Verify piece
 					if (this.verifyPiece(pieceMsg.getPieceIndex(),
 							pieceMsg.getBlockData())) {
-						// Update downloaded
-						this.downloaded = this.downloaded
-								+ pieceMsg.getBlockData().length;
+						
 						if(this.downloaded== this.totalPieces){
 							System.out.println("downloading last piece!");
 						}
@@ -386,6 +386,10 @@ private static class TrackerAnnounce extends TimerTask{
 						this.setBitAtIndex(pieceMsg.getPieceIndex());
 						// Recalculate amount left to download
 						this.left = this.left - pieceMsg.getBlockData().length;
+						if (this.left < 0) {
+							this.left = 0;
+							System.out.println("downloaded all!");
+						}
 						// Notify peers that the piece is complete
 						this.notifyPeers(pieceMsg.getPieceIndex());
 						System.out.println("Wrote piece to file!");
@@ -566,7 +570,7 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 private void addPeers(List<Peer> p){
 	
 	for(Peer newGuy :p){//
-	//	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
+	//if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
 		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
 	
 			if(!this.peers.contains(newGuy)){
@@ -650,22 +654,22 @@ private void choosePiece(final Peer p) throws IOException{
 	 * 
 	 * 
 	 */
-	for (int i=0; i<this.totalPieces; i++){
-		/*set to i-7, but then is -1 when it gets to index 8... need to switch
-		 * to bitfield and not bitfieldBools here
+	for (int pieceIndex=0; pieceIndex<this.totalPieces; pieceIndex++){
+		/*using bitfield now no more boolean 
+		 * should fix the problem
 		 * 
 		*/
-		if(!this.bitfieldBools[7-i] && peersBit[i]){
+		if(!utils.is_bit_set(this.bitfield,pieceIndex) && utils.is_bit_set(p.getBitField(),pieceIndex)){
 			int reqPieceLength=0;
 			//if last piece
-			if(i == this.totalPieces-1){
+			if(pieceIndex == this.totalPieces-1){
 				reqPieceLength=this.fileLength % this.pieceLength;
 				
 			}else{
 				reqPieceLength=this.pieceLength;
 			}
-			System.out.println("Choosing piece index : " + i);
-			p.request(i, reqPieceLength);
+			System.out.println("Choosing piece index : " + pieceIndex);
+			p.request(pieceIndex, reqPieceLength);
 			break;
 		}
 	}

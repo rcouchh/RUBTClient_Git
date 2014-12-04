@@ -240,6 +240,7 @@ public class Peer extends Thread {
 			if (!Arrays.equals(otherProtocol, Peer.Protocol)) {
 				System.out.println("Incorrect protocol of response!");
 				this.disconnect();
+				//this.initiateHandShake(peerID,info_hash);
 				return false;
 			}
 			
@@ -319,7 +320,7 @@ public class Peer extends Thread {
 						this.handlePieceMessage(m);//handle piece message
 						}else{
 							this.toDo.put(new peerMessage(this,m));
-							System.out.println("Message added to peer queue");
+							System.out.println("Message added to peer queue" + m.getType() + m.getMessageId());
 
 					}
 						//this.client.Handle(new peerMessage(this,m));

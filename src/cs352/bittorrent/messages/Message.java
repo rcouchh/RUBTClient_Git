@@ -56,6 +56,41 @@ public class Message {
 	public void writePayload(final DataOutputStream dos) throws IOException {
 		// Nothing here
 	}
+	public String getType(){
+		switch(this.MessageID){
+		case M_Choke:
+			return "choke";
+		//unchoke message
+		case M_Unchoke:
+			return "unchoke";
+		//interested message
+		case M_Interested:
+			return "Interested";
+		//uninterested message
+		case M_Uninterested:
+			return "Uninterested";
+		//have message
+		case M_Have:	
+			return  "Have ";
+		//request message
+		case M_Request:
+		
+		return  "request";
+		//piece message
+		case M_Piece:
+		
+		return  "piece";
+		//bitfield message
+		case M_Bitfield:
+		
+		return  "bitfield";
+		
+		default:
+			return "not a correct message type";
+		}
+		
+		
+	}
 	
 	/**
 	 * 
