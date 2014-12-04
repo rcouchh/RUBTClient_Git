@@ -56,8 +56,8 @@ public class Message {
 	public void writePayload(final DataOutputStream dos) throws IOException {
 		// Nothing here
 	}
-	public String getType(){
-		switch(this.MessageID){
+	public String getType(Message m){
+		switch(m.getMessageId()){
 		case M_Choke:
 			return "choke";
 		//unchoke message
@@ -101,18 +101,18 @@ public class Message {
 	 */
 	public static Message read(InputStream is) throws IOException{
 		DataInputStream readMe= new DataInputStream(is);
-		System.out.println("reading int1...");
+		//System.out.println("reading int1...");
 		final int length = readMe.readInt();
-		System.out.println("Length = "+length);
+		//System.out.println("Length = "+length);
 
 		//length 0 => keepAlive message
 		if(length==0){
 			return Message.keepAlive;
 		}
 		//get messageID
-		System.out.println("reading byte...");
+		//System.out.println("reading byte...");
 		final byte ID= readMe.readByte();
-		System.out.println("read byte! : "+ID);
+		//System.out.println("read byte! : "+ID);
 		int pieceIndex;
 		int byteOffset;
 		int request_length;
@@ -163,11 +163,11 @@ public class Message {
 	
 	public static void write(final OutputStream os, Message msg) throws IOException {
 		DataOutputStream outStream = new DataOutputStream(os);
-		System.out.println("writing length to stream: "+ msg.length);
+		//System.out.println("writing length to stream: "+ msg.length);
 		outStream.writeInt(msg.length);
 			try{
 		if (msg.length > 0) {
-			System.out.println("writing ID to stream: "+ msg.MessageID);
+			//System.out.println("writing ID to stream: "+ msg.MessageID);
 			outStream.writeByte(msg.MessageID);
 			switch(msg.MessageID){
 			case M_Bitfield:{

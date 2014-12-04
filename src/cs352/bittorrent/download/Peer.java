@@ -320,7 +320,7 @@ public class Peer extends Thread {
 						this.handlePieceMessage(m);//handle piece message
 						}else{
 							this.toDo.put(new peerMessage(this,m));
-							System.out.println("Message added to peer queue" + m.getType() + m.getMessageId());
+							System.out.println("Message added to peer queue" + m.getType(m) + m.getMessageId());
 
 					}
 						//this.client.Handle(new peerMessage(this,m));

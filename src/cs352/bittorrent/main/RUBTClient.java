@@ -194,11 +194,12 @@ private static class TrackerAnnounce extends TimerTask{
 	@Override
 	public void run(){
 		LinkedList<Peer> p= new LinkedList<Peer>();
+		System.out.println("ANNOUNCING SOME SHIT TO TRACKER");
 		p=this.client.tracker.announceToTracker(this.client.getDownloaded(), this.client.getUploaded(), this.client.getLeft(), "");
 		if(!p.isEmpty() && p!=null){
 			this.client.addPeers(p);
 		}
-		this.client.announceTimer.schedule(this,this.client.tracker.getInterval()*1000);
+		//this.client.announceTimer.schedule(this,this.client.tracker.getInterval()*1000);
 	}
 }
 
@@ -257,9 +258,9 @@ private static class TrackerAnnounce extends TimerTask{
 	}
 	{
 		//scheduling the regular announces
-		// int interval = this.tracker.getInterval();
-	//	this.announceTimer.schedule(new TrackerAnnounce(this),
-		//		interval * 1000);
+		int interval = this.tracker.getInterval();
+		this.announceTimer.schedule(new TrackerAnnounce(this),
+			interval * 1000,interval * 1000);
 	}
 
 	while(cantStopWontStop){
@@ -570,11 +571,11 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 private void addPeers(List<Peer> p){
 	
 	for(Peer newGuy :p){//
-	//if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
-		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
+	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
+		//if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
 	
-			if(!this.peers.contains(newGuy)){
-				if(newGuy.getIP().equals("128.6.171.130")&& this.onethirty==false){
+			if(!this.peers.contains(newGuy)){//&& this.onethirty==false
+				if(newGuy.getIP().equals("128.6.171.130")){
 					this.onethirty=true;
 					this.peers.add(newGuy);
 					System.out.println(" -added peer:"+newGuy.getIP()+ " to list of peers");
@@ -582,7 +583,8 @@ private void addPeers(List<Peer> p){
 					newGuy.setToDo(this.toDo);
 					Thread t= new Thread(newGuy);
 					t.start();
-				}if(newGuy.getIP().equals("128.6.171.131")&& this.onethirtyone==false){
+															//&& this.onethirtyone==false
+				}if(newGuy.getIP().equals("128.6.171.131")){
 					this.onethirtyone=true;
 					this.peers.add(newGuy);
 					System.out.println(" -added peer:"+newGuy.getIP()+ " to list of peers");
@@ -611,10 +613,10 @@ private void notifyPeers(int indexDownloaded){
 	}
 }
 private boolean isLocalInterested(Peer p){
-	final boolean[] peersBit=p.getBoolean();
+	//final boolean[] peersBit=p.getBoolean();
 	int Index;
 	for(Index=0;Index<this.totalPieces;Index++){
-		if(!this.bitfieldBools[Index] && peersBit[Index]){
+		if(!utils.is_bit_set(this.bitfield, Index) && utils.is_bit_set(p.getBitField(), Index)){
 			System.out.println("interested in this peer!");
 			return true;
 		}
