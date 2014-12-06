@@ -365,8 +365,9 @@ private static class TrackerAnnounce extends TimerTask{
 						// Choke
 						peer.writeMessage(Message.Choke);
 					}
-
 					break;
+					
+					
 				case Message.M_Piece:
 					final PieceMessage pieceMsg = (PieceMessage) msg;
 					System.out.println("Piece Msg received by client!");
@@ -571,8 +572,8 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 private void addPeers(List<Peer> p){
 	
 	for(Peer newGuy :p){//
-	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
-		//if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
+	//if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
+		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
 	
 			if(!this.peers.contains(newGuy)){//&& this.onethirty==false
 				if(newGuy.getIP().equals("128.6.171.130")){
@@ -661,7 +662,11 @@ private void choosePiece(final Peer p) throws IOException{
 		 * should fix the problem
 		 * 
 		*/
-		if(!utils.is_bit_set(this.bitfield,pieceIndex) && utils.is_bit_set(p.getBitField(),pieceIndex)){
+	
+		
+		//if(!utils.is_bit_set(this.bitfield,pieceIndex) && utils.is_bit_set(p.getBitField(),pieceIndex)){
+		if(!utils.is_bit_set(this.bitfield,pieceIndex)){
+
 			int reqPieceLength=0;
 			//if last piece
 			if(pieceIndex == this.totalPieces-1){
@@ -672,6 +677,9 @@ private void choosePiece(final Peer p) throws IOException{
 			}
 			System.out.println("Choosing piece index : " + pieceIndex);
 			p.request(pieceIndex, reqPieceLength);
+			if(pieceIndex==435){
+				System.out.println("Download Complete! I reward you with Rick Astley.");
+			}
 			break;
 		}
 	}

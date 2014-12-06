@@ -320,7 +320,7 @@ public class Peer extends Thread {
 						this.handlePieceMessage(m);//handle piece message
 						}else{
 							this.toDo.put(new peerMessage(this,m));
-							System.out.println("Message added to peer queue" + m.getType(m) + m.getMessageId());
+							System.out.println("Message added to peer queue " + m.getType(m) +" "+ m.getMessageId());
 
 					}
 						//this.client.Handle(new peerMessage(this,m));
@@ -340,7 +340,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			//make sure the piece is the one the client requested
 		System.out.println("inside handle piece msg:");
 		if(pM.getBlockData()!=null){
-		System.out.println("piece is not null");
+	//	System.out.println("piece is not null");
 		}
 			if(this.currBoffset!= pM.getOffset()){
 				//check to make sure block isnt too large
