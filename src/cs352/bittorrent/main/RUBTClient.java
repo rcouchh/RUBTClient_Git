@@ -395,6 +395,9 @@ private static class TrackerAnnounce extends TimerTask{
 						// Notify peers that the piece is complete
 						this.notifyPeers(pieceMsg.getPieceIndex());
 						System.out.println("Wrote piece to file!");
+						if(pieceMsg.getPieceIndex()==435){
+							System.out.println("Download complete! I reward you with Rick Astley.");
+						}
 						
 						
 					} else {
@@ -677,9 +680,6 @@ private void choosePiece(final Peer p) throws IOException{
 			}
 			System.out.println("Choosing piece index : " + pieceIndex);
 			p.request(pieceIndex, reqPieceLength);
-			if(pieceIndex==435){
-				System.out.println("Download Complete! I reward you with Rick Astley.");
-			}
 			break;
 		}
 	}
