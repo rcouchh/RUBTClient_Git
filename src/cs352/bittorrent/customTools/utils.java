@@ -134,7 +134,6 @@ public class utils {
 				throws IOException {
 			final byte[] ret = new byte[(int) file.length()];
 			file.read(ret);
-			//file.readFully(ret);
 			return ret;
 		}
 	 public static String printPeer(Peer p){
