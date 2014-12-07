@@ -88,7 +88,7 @@ public class Peer extends Thread {
 	 //check for peer is choked
 	 private volatile boolean remoteChoked = true;
 	 //the client this peer is interacting with
-	private static RUBTClient client;
+	private  RUBTClient client;
 	//keep peer running
 	private boolean cantStopWontStop= true;
 	
@@ -150,8 +150,10 @@ public class Peer extends Thread {
 	}
 	//destroys each socket/stream
 	public void disconnect() throws IOException {
+		this.cantStopWontStop = false;
 		this.socket.close();
 		this.inStream.close();
+		this.outStream.flush();
 		this.outStream.close();
 	}
 	
@@ -240,6 +242,7 @@ public class Peer extends Thread {
 			if (!Arrays.equals(otherProtocol, Peer.Protocol)) {
 				System.out.println("Incorrect protocol of response!");
 				this.disconnect();
+				this.client.removePeer(this);
 				//this.initiateHandShake(peerID,info_hash);
 				return false;
 			}
@@ -316,13 +319,14 @@ public class Peer extends Thread {
 						
 						//System.out.println("reading a :" + m.getMessageId());
 						if(m.getMessageId()== Message.M_Piece){
-							System.out.println("Handling piece message...");
+							//System.out.println("Handling piece message...");
 						this.handlePieceMessage(m);//handle piece message
 						}else{
 							this.toDo.put(new peerMessage(this,m));
-							System.out.println("Message added to peer queue " + m.getType(m) +" "+ m.getMessageId());
+							System.out.println("Message added to peer queue" + m.getType(m) + m.getMessageId());
 
 					}
+						
 						//this.client.Handle(new peerMessage(this,m));
 						
 				}
@@ -340,7 +344,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			//make sure the piece is the one the client requested
 		System.out.println("inside handle piece msg:");
 		if(pM.getBlockData()!=null){
-	//	System.out.println("piece is not null");
+		//System.out.println("piece is not null");
 		}
 			if(this.currBoffset!= pM.getOffset()){
 				//check to make sure block isnt too large
@@ -355,7 +359,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			
 			if(pM.getBlockData().length == this.lastBlockLength) {
 				// Write the last block of piece
-				System.out.println("Writing last block!");
+			//	System.out.println("Writing last block!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 				this.currBoffset, this.lastBlockLength);
 				// Queue the full piece
@@ -366,7 +370,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 
 			else if (((pM.getOffset() + defaultLength + this.lastBlockLength) == this.currPlength) && this.lastBlockLength == 0) {
 				// Write the last block of piece
-				System.out.println("Writing last block2!");
+			//	System.out.println("Writing last block2!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, defaultLength);
 				// Queue the full piece
@@ -377,7 +381,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			
 			else if((pM.getOffset() + defaultLength  + this.lastBlockLength) == this.currPlength) {
 				// Write the second to last block of piece
-				System.out.println("Writing 2nd to last piece!");
+				//System.out.println("Writing 2nd to last piece!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, Peer.defaultLength);
 				Message_Request requestMsg;
@@ -391,7 +395,7 @@ public boolean handlePieceMessage(Message m) throws IOException, InterruptedExce
 			
 			else {
 				// Temporarily store the block
-				System.out.println("Temp storing block!");
+				//System.out.println("Temp storing block!");
 				System.arraycopy(pM.getBlockData(), 0, this.currPiece,
 						this.currBoffset, defaultLength);
 				Message_Request requestMsg;
@@ -431,7 +435,7 @@ public void request(final int pieceIndex, final int pieceLength)
 		requestMsg = new Message_Request(this.curIndex, this.currBoffset,
 				Peer.defaultLength);
 	}
-	System.out.println("Requesting piece index: "+requestMsg.getIndex());
+	//System.out.println("Requesting piece index: "+requestMsg.getIndex());
 	this.writeMessage(requestMsg);
 }
 	

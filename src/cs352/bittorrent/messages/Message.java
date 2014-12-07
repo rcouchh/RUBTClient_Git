@@ -9,7 +9,7 @@ import cs352.bittorrent.customTools.utils;
  *
  */
 public class Message {
-	
+//I commented out the reading int... writing int.. etc print statements
 	
 	
 	/**
@@ -57,6 +57,9 @@ public class Message {
 		// Nothing here
 	}
 	public String getType(Message m){
+		if(m.getLength()==0){
+			return"keep-alive";
+		}
 		switch(m.getMessageId()){
 		case M_Choke:
 			return "choke";
@@ -163,11 +166,11 @@ public class Message {
 	
 	public static void write(final OutputStream os, Message msg) throws IOException {
 		DataOutputStream outStream = new DataOutputStream(os);
+		//System.out.println("writing length to stream: "+ msg.length);
 		outStream.writeInt(msg.length);
 			try{
 		if (msg.length > 0) {
-			System.out.println("writing msg length to stream: "+ msg.length);
-			System.out.println("writing msg ID to stream: "+ msg.MessageID);
+			//System.out.println("writing ID to stream: "+ msg.MessageID);
 			outStream.writeByte(msg.MessageID);
 			switch(msg.MessageID){
 			case M_Bitfield:{

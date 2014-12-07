@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -187,9 +188,9 @@ public synchronized void addToDo(peerMessage m){
 	this.toDo.add(m);
 }
 private static class TrackerAnnounce extends TimerTask{
-	private  RUBTClient client;
-	public TrackerAnnounce(RUBTClient c){
-		this.client=c;
+	private final RUBTClient client;
+	public TrackerAnnounce(final RUBTClient client){
+		this.client=client;
 	}
 	@Override
 	public void run(){
@@ -207,6 +208,7 @@ private static class TrackerAnnounce extends TimerTask{
        this.tInfo= info;
        this.writeFileName= WriteFile;
        this.fileLength= info.file_length;
+     
        try {
 		this.tracker= new Tracker(this.clientId,this.tInfo.info_hash.array(),
 				   this.tInfo.announce_url.toString(),this.port,info);
@@ -272,6 +274,7 @@ private static class TrackerAnnounce extends TimerTask{
 			 Peer peer = handler.getPeer();
 				
 		 		//System.out.println("Message ID from client queue: "+msg.getMessageId());
+			 System.out.println("client is handling a:" + msg.getType(msg));
 			 switch (msg.getMessageId()){
 			 case Message.M_KeepAlive:
 				 peer.writeMessage(Message.keepAlive);
@@ -365,12 +368,11 @@ private static class TrackerAnnounce extends TimerTask{
 						// Choke
 						peer.writeMessage(Message.Choke);
 					}
+
 					break;
-					
-					
 				case Message.M_Piece:
 					final PieceMessage pieceMsg = (PieceMessage) msg;
-					System.out.println("Piece Msg received by client!");
+					//System.out.println("Piece Msg received by client!");
 					// Update downloaded
 					this.downloaded = this.downloaded
 							+ pieceMsg.getBlockData().length;
@@ -388,17 +390,17 @@ private static class TrackerAnnounce extends TimerTask{
 						this.setBitAtIndex(pieceMsg.getPieceIndex());
 						// Recalculate amount left to download
 						this.left = this.left - pieceMsg.getBlockData().length;
-						if (this.left < 0) {
+						if (this.left <= 0) {
 							this.left = 0;
-							System.out.println("downloaded all!");
+							System.out.println("downloaded all!");	
 						}
 						// Notify peers that the piece is complete
 						this.notifyPeers(pieceMsg.getPieceIndex());
-						System.out.println("Wrote piece to file!");
+						//System.out.println("Wrote piece to file!");
 						if(pieceMsg.getPieceIndex()==435){
 							System.out.println("Download complete! I reward you with Rick Astley.");
+							this.shutdownGracefully();
 						}
-						
 						
 					} else {
 						// Drop piece
@@ -470,6 +472,9 @@ private static class TrackerAnnounce extends TimerTask{
 
 		System.exit(1);
 	}
+  public void removePeer(Peer p){
+	  this.peers.remove(p);
+  }
 
   
   
@@ -554,7 +559,7 @@ private static class TrackerAnnounce extends TimerTask{
 				System.out.println("messagedigest unable to find sha-1 alg");
 			}	
 		if (MessageDigest.isEqual(this.tInfo.piece_hashes[pieceIndex].array(), hashCheck)) {
-			System.out.println("the piece at index "+ pieceIndex +" has been verified");
+			//System.out.println("the piece at index "+ pieceIndex +" has been verified");
 			return true;
 		}
 		//System.out.println("the piece at index"+ pieceIndex +"did not match the sha1");
@@ -609,7 +614,7 @@ private void notifyPeers(int indexDownloaded){
 		Message_Have have= new Message_Have(indexDownloaded);
 		try {
 			p.writeMessage(have);
-			System.out.println("Sending have msg for index: "+have.getPieceIndex());
+			//System.out.println("Sending have msg for index: "+have.getPieceIndex());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -665,23 +670,22 @@ private void choosePiece(final Peer p) throws IOException{
 		 * should fix the problem
 		 * 
 		*/
-	
-		
 		//if(!utils.is_bit_set(this.bitfield,pieceIndex) && utils.is_bit_set(p.getBitField(),pieceIndex)){
-		if(!utils.is_bit_set(this.bitfield,pieceIndex)){
+				if(!utils.is_bit_set(this.bitfield,pieceIndex)){
 
-			int reqPieceLength=0;
-			//if last piece
-			if(pieceIndex == this.totalPieces-1){
-				reqPieceLength=this.fileLength % this.pieceLength;
-				
-			}else{
-				reqPieceLength=this.pieceLength;
-			}
-			System.out.println("Choosing piece index : " + pieceIndex);
-			p.request(pieceIndex, reqPieceLength);
-			break;
-		}
+					int reqPieceLength=0;
+					//if last piece
+					if(pieceIndex == this.totalPieces-1){
+						reqPieceLength=this.fileLength % this.pieceLength;
+						
+					}else{
+						reqPieceLength=this.pieceLength;
+					}
+					System.out.println("Choosing piece index : " + pieceIndex);
+					p.request(pieceIndex, reqPieceLength);
+					
+					break;
+				}
 	}
 }
 }//end public class
