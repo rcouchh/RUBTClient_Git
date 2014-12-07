@@ -120,6 +120,7 @@ public class RUBTClient extends Thread{
     }//end main
     public String command;
     public BufferedReader userInput  = null;
+    public static ByteArrayOutputStream[] clientPieces;
     public final TorrentInfo tInfo;// torrentinfo object
     private boolean onethirty= false;//keep track if ip .130 added
     private boolean onethirtyone=false;//keep track if ip 131
@@ -162,6 +163,9 @@ public class RUBTClient extends Thread{
 	private int getDownloaded(){
 		return this.downloaded;
 	}
+	private int getUploaded(){
+		return this.uploaded;
+	}
 	private int getLeft(){
 		return this.left;
 	}
@@ -178,12 +182,19 @@ public synchronized void addDownloaded(int down){
 	System.out.println("Client has downloaded:"+ this.downloaded+down);
 	this.downloaded+=down;
 }
+/**
+ * updates the uploaded field of client
+ * @param int uploaded
+ * 
+ */
+public synchronized void addUploaded(int up){
+	System.out.println("Client has uploaded:"+ this.uploaded+up);
+	this.uploaded+=up;
+}
 public byte[] getBitfield(){
 	return this.bitfield;
 }
-public int getUploaded(){
-	return this.uploaded;
-}
+
 public synchronized void addToDo(peerMessage m){
 	this.toDo.add(m);
 }
@@ -348,22 +359,36 @@ private static class TrackerAnnounce extends TimerTask{
 					}
 					break;
 					
-					
+					/*
+					 * 
+					 * request/uploading now works, need to update 'uploaded' in 
+					 * tracker announce
+					 */
 					
 				case Message.M_Request:
 					final Message_Request requestMsg = (Message_Request) msg;
-
 					// Check for piece
-					if (this.bitfieldBools[requestMsg.getIndex()]) {
+					//if (this.bitfieldBools[requestMsg.getIndex()]) {
+					System.out.println("Peer is requesting piece #: "+requestMsg.getIndex());
+					if(utils.is_bit_set(this.bitfield,requestMsg.getIndex())){
+						RandomAccessFile file = this.writeFile;
+						byte[] f = utils.fileToBytes(file);
+					
 						// Send block
 						byte[] block = new byte[requestMsg.getBlockLength()];
-						System.arraycopy(utils.fileToBytes(this.writeFile),
-								requestMsg.getOffset(), block, 0,
+						System.arraycopy(f, requestMsg.getOffset(), block, 0,
 								requestMsg.getBlockLength());
+						
 						final PieceMessage pieceMsg = new PieceMessage(
 								requestMsg.getIndex(),
 								requestMsg.getOffset(), block);
 						peer.writeMessage(pieceMsg);
+						System.out.println("Piece sent to peer successfully!");
+						
+						// Update uploaded
+						this.uploaded = this.uploaded
+								+ requestMsg.getBlockLength();
+						
 					} else {
 						// Choke
 						peer.writeMessage(Message.Choke);
@@ -392,15 +417,12 @@ private static class TrackerAnnounce extends TimerTask{
 						this.left = this.left - pieceMsg.getBlockData().length;
 						if (this.left <= 0) {
 							this.left = 0;
-							System.out.println("downloaded all!");	
+							System.out.println("Download Complete!");	
 						}
 						// Notify peers that the piece is complete
 						this.notifyPeers(pieceMsg.getPieceIndex());
 						//System.out.println("Wrote piece to file!");
-						if(pieceMsg.getPieceIndex()==435){
-							System.out.println("Download complete! I reward you with Rick Astley.");
-							this.shutdownGracefully();
-						}
+
 						
 					} else {
 						// Drop piece
@@ -581,7 +603,7 @@ private void addPeers(List<Peer> p){
 	
 	for(Peer newGuy :p){//
 	//if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
-		if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
+	if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
 	
 			if(!this.peers.contains(newGuy)){//&& this.onethirty==false
 				if(newGuy.getIP().equals("128.6.171.130")){

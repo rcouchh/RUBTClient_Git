@@ -133,7 +133,8 @@ public class utils {
 	   public static byte[] fileToBytes(final RandomAccessFile file)
 				throws IOException {
 			final byte[] ret = new byte[(int) file.length()];
-			file.readFully(ret);
+			file.read(ret);
+			//file.readFully(ret);
 			return ret;
 		}
 	 public static String printPeer(Peer p){
