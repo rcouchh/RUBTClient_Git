@@ -50,6 +50,10 @@ public class Tracker {
       DataInputStream is;
       ByteArrayOutputStream buff;
       int connected=0;
+	private int downloaded;
+	private int uploaded;
+	private int bytesLeft;
+	private String event;
  static final char[] CHAR_FOR_BYTE = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
  public static ByteBuffer keyFAILURE = ByteBuffer.wrap(new byte[]{'f', 'a', 'i', 'l', 'u', 'r', 'e', ' ', 'r', 'e', 'a', 's', 'o', 'n'});     
  private static final ByteBuffer Key_Peers = ByteBuffer.wrap(new byte[]{'p','e','e','r','s'});
@@ -67,14 +71,21 @@ public class Tracker {
   * 
   */
  	@SuppressWarnings("unchecked")
-	public Map<ByteBuffer, Object> connect(URL url)throws IOException, BencodingException{
+	public Map<ByteBuffer, Object> connect(String urlString)throws IOException{
  	     Map<ByteBuffer, Object> trkMap = null;
 
  		
  		//attempt connection with tracker
-      	
+ 	    try {
+	         url = new URL(urlString);//try making connect take a string then in connect catch update port and try again
+	         
+	     } catch (MalformedURLException e1) {
+	    	 System.out.println("Error creating the URL!");
+	    	 return null;
+	     } 
+        try{	
         		
- 	     		System.out.println(url.toString());
+        		System.out.println(url.toString());
                 conn = (HttpURLConnection)url.openConnection();
                 conn.setRequestMethod("GET");
 
@@ -82,9 +93,25 @@ public class Tracker {
                 connected = conn.getResponseCode();
                 System.out.println("Response code: "+connected);
                 
+        } catch(Exception e){
+                	System.out.println("Error connecting to tracker");
+                	if(this.getPort()!=6889){
+                		System.out.println("trying another port!");
+                		this.setPort(this.port+1);
+                		 urlString = (AnnounceUrl+"?"
+                		        +"info_hash="+info_Hash_url
+                		        +"&peer_id="+peer_id+"&port="+this.getPort()+
+                		        "&uploaded="+this.uploaded+
+                		        "&downloaded="+this.downloaded+"&left="+this.bytesLeft);
+                	 		if(event !=null && !event.isEmpty()){
+                	 		urlString+="&event="+this.event;    	 	
+                	 		}
+                	 		this.connect(urlString);
+                	 		
+                	}
+                }
         
-        
-      
+        try{
                 //receive response
                 // read each byte from input stream, write to output stream
                 is = new DataInputStream(conn.getInputStream());
@@ -93,13 +120,20 @@ public class Tracker {
                 trackerBytes = new byte[size];
                 is.readFully(trackerBytes);
                 is.close();   
-        
+        }catch(Exception e){
+        	System.out.println("Error recieving response from tracker!");
+        	System.exit(1);
+        }
                 
                 //decode tracker response (byte array) to Map
-            
+                try{
                 trkMap = (Map<ByteBuffer, Object>)Bencoder2.decode(trackerBytes);
          
-          
+            }catch(BencodingException be){
+                System.out.println("Bencoding error for decoding tracker response!");
+                System.exit(1);
+                // e.printStackTrace();
+            }
          
         //setpeerIPList(trkMap);
         //System.out.println(peerIPList);
@@ -130,8 +164,12 @@ public class Tracker {
     public void setPort(int p){
     	this.port=p;
     }
-    public LinkedList<Peer> announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event) throws IOException, BencodingException{
+    public LinkedList<Peer> announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event) {
     	 LinkedList<Peer> peersList = null;
+    	 this.downloaded=bytesDownloaded;
+    	 this.uploaded=bytesUploaded;
+    	 this.bytesLeft=bytesLeft;
+    	 this.event=event;
     	String urlString = (AnnounceUrl+"?"
     		        +"info_hash="+info_Hash_url
     		        +"&peer_id="+peer_id+"&port="+port+
@@ -141,14 +179,24 @@ public class Tracker {
     	 		urlString+="&event="+event;    	 	
     	 		}
     	 			
-    	         url = new URL(urlString);
-    	            
+    		
     		 
-				Map<ByteBuffer,Object> c= connect(url);
-				this.interval=(Integer)c.get(Key_Interval);
-				System.out.println("trackerInterval: " + interval);
-				System.out.println("getting peerslist..");
-				peersList=getPeers(c);
+				Map<ByteBuffer, Object> c;
+				try {
+					c = connect(urlString);
+					this.interval=(Integer)c.get(Key_Interval);
+					System.out.println("trackerInterval: " + interval);
+					System.out.println("getting peerslist..");
+					peersList=getPeers(c);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					if(this.port!=6889){
+						System.out.println("trying another port!");
+						this.setPort(this.port++);
+						this.announceToTracker(bytesDownloaded, bytesUploaded, bytesLeft, event);
+					}
+				}
+				
 				//LinkedList<Peer> temp= peersList;
 				//peersList=utils.findPeersWithPrefix(temp);
 				if(peersList== null){
