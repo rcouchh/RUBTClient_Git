@@ -207,7 +207,14 @@ private static class TrackerAnnounce extends TimerTask{
     public void run(){
         LinkedList<Peer> p= new LinkedList<Peer>();
         System.out.println("ANNOUNCING SOME SHIT TO TRACKER");
-        p=this.client.tracker.announceToTracker(this.client.getDownloaded(), this.client.getUploaded(), this.client.getLeft(), "");
+        try {
+			p=this.client.tracker.announceToTracker(this.client.getDownloaded(), this.client.getUploaded(), this.client.getLeft(), "");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}catch (final BencodingException e) {
+			
+		}
         if(!p.isEmpty() && p!=null){
             this.client.addPeers(p);
         }
@@ -234,7 +241,7 @@ private static class TrackerAnnounce extends TimerTask{
 
    }
    public void run(){
-       List<Peer> p;
+       List<Peer> p=null;
        
     try{
         userInput  = new BufferedReader(new InputStreamReader(System.in));
@@ -248,11 +255,7 @@ private static class TrackerAnnounce extends TimerTask{
         printBitfield();
         System.out.println("length of file:"+tInfo.file_length);
         System.out.println("number of pieces:"+ tInfo.piece_hashes.length);
-        p = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
-        if(!p.isEmpty()&& p!=null){
-            System.out.println("adding peers to list");
-            this.addPeers(p);
-        }
+       
     }catch (final FileNotFoundException fnfe) {
             System.out.println("Unable to open output file for writing!");
         // Exit right now, since nothing else was started yet
@@ -265,10 +268,31 @@ private static class TrackerAnnounce extends TimerTask{
         // Exit right now, since nothing else was started yet
         return;
     }
-    catch (Exception e) {
-        System.out.println("Error creating/connecting to the tracker!");
-        System.exit(1);
+    int increment;
+    boolean changePort=true;
+    for(increment=0;(increment<=8)&&(changePort=true);increment++){
+    	
+    	try{
+    		p = tracker.announceToTracker(this.downloaded, this.uploaded, this.left, event);
+    	}catch (final IOException ioe) {
+    		if(increment !=0){
+        		System.out.println("trying another port for tracker");
+        	}
+			this.tracker.setPort(this.tracker.getPort() + 1);
+			
+			changePort = true;
+		} catch (final BencodingException e) {
+			if(increment !=0){
+	    		System.out.println("trying another port for tracker");
+	    	}
+			this.tracker.setPort(this.tracker.getPort() + 1);
+			
+			changePort = true;
+		}
+    	
     }
+    this.addPeers(p);
+   
     {
         //scheduling the regular announces
         int interval = this.tracker.getInterval();
@@ -480,8 +504,13 @@ private static class TrackerAnnounce extends TimerTask{
             }
         }
 
-        this.tracker.announceToTracker(this.getDownloaded(), this.getUploaded(),
-                this.getLeft(), "stopped");
+        try {
+			this.tracker.announceToTracker(this.getDownloaded(), this.getUploaded(),
+			        this.getLeft(), "stopped");
+		} catch (BencodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         	return;
       //  System.exit(1);
     }

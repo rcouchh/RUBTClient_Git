@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Map;
 
-
 import cs352.bittorrent.givenTools.*;
 import cs352.bittorrent.customTools.*;
 
@@ -68,14 +67,14 @@ public class Tracker {
   * 
   */
  	@SuppressWarnings("unchecked")
-	public Map<ByteBuffer, Object> connect(URL url)throws IOException{
+	public Map<ByteBuffer, Object> connect(URL url)throws IOException, BencodingException{
  	     Map<ByteBuffer, Object> trkMap = null;
 
  		
  		//attempt connection with tracker
-        try{	
+      	
         		
-        		System.out.println(url.toString());
+ 	     		System.out.println(url.toString());
                 conn = (HttpURLConnection)url.openConnection();
                 conn.setRequestMethod("GET");
 
@@ -83,11 +82,9 @@ public class Tracker {
                 connected = conn.getResponseCode();
                 System.out.println("Response code: "+connected);
                 
-        } catch(Exception e){
-                	System.out.println("Error connecting to tracker");
-                }
         
-        try{
+        
+      
                 //receive response
                 // read each byte from input stream, write to output stream
                 is = new DataInputStream(conn.getInputStream());
@@ -96,20 +93,13 @@ public class Tracker {
                 trackerBytes = new byte[size];
                 is.readFully(trackerBytes);
                 is.close();   
-        }catch(Exception e){
-        	System.out.println("Error recieving response from tracker!");
-        	System.exit(1);
-        }
+        
                 
                 //decode tracker response (byte array) to Map
-                try{
+            
                 trkMap = (Map<ByteBuffer, Object>)Bencoder2.decode(trackerBytes);
          
-            }catch(BencodingException be){
-                System.out.println("Bencoding error for decoding tracker response!");
-                System.exit(1);
-                // e.printStackTrace();
-            }
+          
          
         //setpeerIPList(trkMap);
         //System.out.println(peerIPList);
@@ -134,7 +124,13 @@ public class Tracker {
     public int getInterval(){
     	return this.interval;
     }
-    public LinkedList<Peer> announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event){
+    public int getPort(){
+    	return this.port;
+    }
+    public void setPort(int p){
+    	this.port=p;
+    }
+    public LinkedList<Peer> announceToTracker(int bytesDownloaded, int bytesUploaded, int bytesLeft, String event) throws IOException, BencodingException{
     	 LinkedList<Peer> peersList = null;
     	String urlString = (AnnounceUrl+"?"
     		        +"info_hash="+info_Hash_url
@@ -145,14 +141,9 @@ public class Tracker {
     	 		urlString+="&event="+event;    	 	
     	 		}
     	 			
-    		 try {
     	         url = new URL(urlString);
-    	         
-    	     } catch (MalformedURLException e1) {
-    	    	 System.out.println("Error creating the URL!");
-    	    	 return null;
-    	     } 
-    		 try {
+    	            
+    		 
 				Map<ByteBuffer,Object> c= connect(url);
 				this.interval=(Integer)c.get(Key_Interval);
 				System.out.println("trackerInterval: " + interval);
@@ -163,10 +154,7 @@ public class Tracker {
 				if(peersList== null){
 					System.out.println("peerlist null!");
 				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			
     		 return peersList;
     		 
     }
