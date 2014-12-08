@@ -31,7 +31,7 @@ import cs352.bittorrent.messages.peerMessage;
  *
  *
  * Your assignment should basically do the following:
-
+	
     1. Take as a command-line argument the name of the .torrent file to be loaded and the name of the file to save the data to. For example:
        java -cp . RUBTClient somefile.torrent picture.jpeg
     2. Open the .torrent file and parse the data inside. You may use the Bencoder2.java class to decode the data.
@@ -49,6 +49,7 @@ public class RUBTClient extends Thread{
 
     /**
      * @param args the command line arguments
+     * MAKE SURE TORRENT FILE IS INSIDE FILES FOLDER OF THIS DIRECTORY!
      */
        
     public static void main(String[] args) {
@@ -125,7 +126,7 @@ public class RUBTClient extends Thread{
     private boolean onethirty= false;//keep track if ip .130 added
     private boolean onethirtyone=false;//keep track if ip 131
     private final String writeFileName; // name of desired file
-    private final byte[] clientId= utils.generateMyPeerId();
+    public final byte[] clientId= utils.generateMyPeerId();
     private Peer peer;
     private RandomAccessFile writeFile;//actual file
     private int fileLength;//length of write file
