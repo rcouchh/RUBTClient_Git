@@ -593,8 +593,8 @@ private void resetBitAtIndex(int pieceIndex)throws IOException{
 private void addPeers(List<Peer> p){
     
     for(Peer newGuy :p){//
-    //if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
-        if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
+    if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") || newGuy.getIP().equals("128.6.171.130")) ){
+   //if(newGuy!=null && (newGuy.getIP().equals("128.6.171.131") ) ){
     
             if(!this.peers.contains(newGuy)){//&& this.onethirty==false
                 if(newGuy.getIP().equals("128.6.171.130")){
@@ -769,10 +769,10 @@ private void choosePiece(Peer peer) throws IOException{
 					reqPieceLength= this.fileLength % this.pieceLength;
 				}else{
 					reqPieceLength= this.pieceLength;
+				}
 					System.out.println("Choosing piece index : " + index);
 					peer.request(index, reqPieceLength);
 					break;
-				}
 			}
 		}
 		if(!utils.is_bit_set(this.bitfield, a.getIndex()) && utils.is_bit_set(peer.getBitField(), a.getIndex())){
@@ -784,10 +784,11 @@ private void choosePiece(Peer peer) throws IOException{
 				reqPieceLength= this.fileLength % this.pieceLength;
 			}else{
 				reqPieceLength= this.pieceLength;
+			}
 				System.out.println("Choosing piece index : " + index);
 				peer.request(index, reqPieceLength);
 				break;
-			}
+			
 		}
 	}
 }
